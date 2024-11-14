@@ -2,10 +2,10 @@ from flask import Flask, request, Response
 from tf.fabric import Fabric
 from tf.app import use
 from wordcloud import WordCloud, STOPWORDS
-import matplotlib.pyplot as plt
-import io
-import random
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+#import matplotlib.pyplot as plt
+#import io
+#import random
+#from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 import json  # try  'json.dumps(object)' to get json object from python.
 # and 'object = json.loads(jsonString)' to load from json.
@@ -114,30 +114,14 @@ def noThang():
 @app.route("/wordcloud")
 def wordCloudRoute():
 	theLexemes=lexemesRoute()
-	wc = WordCloud()
-	wc.generate_from_frequencies(theLexemes)
-	#fig = plt.figure(figsize=(10,6), dpi=600)
-	#plt.imshow(wc, interpolation='bilinear')
-	#plt.imshow(wc)
-	#plt.axis("off")
 	
-	#plt.imshow(alice_mask, cmap=plt.cm.gray, interpolation='bilinear')
-	#plt.axis("off")
-	#plt.show()
-	
-	
-	#fig = Figure()
-	#axis = fig.add_subplot(1, 1, 1)
-	#xs = range(100)
-	#ys = [random.randint(1, 50) for x in xs]
-	#axis.plot(xs, ys)
-	#output = io.BytesIO()
-	#FigureCanvas(fig).print_png(output)
-	#return Response(output.getvalue(), mimetype='image/png')
-	#return Response(output.getvalue(), mimetype='image/svg+xml')
-	return Response(wc.to_svg(), mimetype='image/svg+xml')
+	return Response(genWordCloudSVG(theLexemes), mimetype='image/svg+xml')
 
-	
+
+def genWordCloudSVG(freqDataDict):
+	wc = WordCloud(font_path="/home/cbrannan/.local/share/fonts/Tiro Typeworks/TrueType/SBL BibLit/SBL_BibLit_Regular.ttf", background_color="white",width=800,height=600)
+	wc.generate_from_frequencies(freqDataDict)
+	return wc.to_svg(embed_font=True)
 	
 
 @app.route("/lex")
