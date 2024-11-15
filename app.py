@@ -172,7 +172,7 @@ def wordCloudRoute():
 		for (k,v) in filteredLexemes.items():
 			filteredLexemes[k]=-filteredLexemes[k]
 
-	if (request.args.get('title')):
+	if (request.args.get('title') and request.args.get('sections') ):
 	
 		titles = []
 		if(request.args.get('sections')):
@@ -181,12 +181,18 @@ def wordCloudRoute():
 	
 		title = consolidateBibleRefs(titles)
 	#	print("title: " + title)
+	maxWords = request.args.get('maxWords')
 	
-	return Response(genWordCloudSVG(filteredLexemes,title=title), mimetype='image/svg+xml')
+	if(maxWords):
+		response=Response(genWordCloudSVG(filteredLexemes,title=title,maxWords=int(maxWords)), mimetype='image/svg+xml')
+	else:
+		response=Response(genWordCloudSVG(filteredLexemes,title=title), mimetype='image/svg+xml')
+
+	return response
 
 
-def genWordCloudSVG(freqDataDict, title=''):
-	wc = WordCloud(font_path="/home/cbrannan/.local/share/fonts/Tiro Typeworks/TrueType/SBL BibLit/SBL_BibLit_Regular.ttf", background_color="white",width=800,height=600)
+def genWordCloudSVG(freqDataDict, title='',maxWords=200):
+	wc = WordCloud(font_path="/home/cbrannan/.local/share/fonts/Tiro Typeworks/TrueType/SBL BibLit/SBL_BibLit_Regular.ttf", background_color="white",width=800,height=600, max_words=maxWords)
 	wc.generate_from_frequencies(freqDataDict)
 	svg = wc.to_svg(embed_font=True)
 	
