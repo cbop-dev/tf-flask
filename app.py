@@ -192,7 +192,7 @@ def wordCloudRoute():
 
 
 def genWordCloudSVG(freqDataDict, title='',maxWords=200):
-	wc = WordCloud(font_path="/home/cbrannan/.local/share/fonts/Tiro Typeworks/TrueType/SBL BibLit/SBL_BibLit_Regular.ttf", background_color="white",width=800,height=600, max_words=maxWords)
+	wc = WordCloud(font_path="lib/fonts/SBL_BibLit_Regular.ttf", background_color="white",width=800,height=600, max_words=maxWords)
 	wc.generate_from_frequencies(freqDataDict)
 	svg = wc.to_svg(embed_font=True)
 	
