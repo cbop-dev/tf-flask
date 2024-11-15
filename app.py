@@ -1,30 +1,14 @@
+import sys
 from flask import Flask, request, Response
 from tf.fabric import Fabric
 from tf.app import use
 from wordcloud import WordCloud, STOPWORDS
-#import matplotlib.pyplot as plt
-#import io
-#import random
-#from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-
-import json  # try  'json.dumps(object)' to get json object from python.
-# and 'object = json.loads(jsonString)' to load from json.
+from pathlib import Path
 
 LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
 
-
 app = Flask(__name__)
 
-'''
-@app.route('/products', defaults={'product_id': "jack"})
-@app.route('/products/<product_id>/')
-def show_product(product_id='jill'):
-	#return request.args.get('product_id')
-	if (product_id):
-		return product_id
-	else:
-		return "nothing!"
-'''
 
 posDict={
 0:  {'abbrev': 'n', 'desc':  'noun',},
@@ -53,8 +37,6 @@ posDict={
 23:  {'abbrev': 'prep+adj', 'desc': 'preposition + adjective',},
 24:  {'abbrev': 'prep+part', 'desc': 'preposition + particle',},
 25:  {'abbrev': 'demon+n', 'desc':  'pronoun, demonstrative + noun'},
-
-
 }
 
 #indexed by the tf node ids, with various synonyms for searching/looking-up.
@@ -119,50 +101,53 @@ tfLxxBooksDict = {
 }
 
 
-#@app.route("/")
-def gen1():
-	return LXX.api.T.text(655362)
-
-@app.route("/test",defaults={'fred': None})
-def test(fred):
-	return fred
-
-
 @app.route("/lex/freq/<int:lexid>")
 def getLexCount(lexid):
 	return LXX.api.Feature.freq_lemma.v(lexid)
 	
 # returns dict of lexemes and frequencies:
-def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False):
+def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=False):
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
-	lexemes = {}
-
 	
+	
+	lexemes = {}
 	restrictStrings=[v['desc'] for (k,v) in posDict.items() if str(k) in restrict]
 	
 	print("restrictStrings: " + str(restrictStrings))
 	restrict = True if len(restrictStrings) > 0 else False
+
+	def addLexes(nodeid):
+		def addLex(wordid):
+			if(LXX.api.F.otype.v(wordid) == 'word' and (not restrict or (restrict and F.sp.v(wordid) in restrictStrings))):
+					
+				if (not F.lex_utf8.v(wordid) in lexemes.keys()):
+					if (not totalCount):
+						lexemes[F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
+					else:#using total counts
+						lexemes[F.lex_utf8.v(wordid)] = {'count': F.freq_lemma.v(wordid), 'id': wordid}
+					if (gloss):
+						lexemes[F.lex_utf8.v(wordid)]['gloss'] = F.gloss.v(wordid)
+				elif (not totalCount): #only do this if we're tracking counts within the chosen sections.
+					lexemes[F.lex_utf8.v(wordid)]['count'] += 1
+		
+		id=int(nodeid)
+		if (L.d(id)):
+			for w in L.d(int(id)):
+				addLex(w)
+		else:
+			addLex(id)
+		
 	
 	#print("sections: " + str(sections))
 	if(len(sections) > 0):
 		for s in sections:
 			s = int(s)
-			for o in LXX.api.L.d(s):
-				if(LXX.api.F.otype.v(o) == 'word' and (not restrict or (restrict and F.sp.v(o) in restrictStrings))):
-					
-					if (not F.lex_utf8.v(o) in lexemes.keys()):
-						lexemes[F.lex_utf8.v(o)] = {'count': 1, 'id': o}
-						if (gloss):
-							lexemes[F.lex_utf8.v(o)]['gloss'] = F.gloss.v(o)
-					else:
-						lexemes[F.lex_utf8.v(o)]['count'] += 1
-				#words.append(F.lex_utf8.v(o))
+			addLexes(s)
 	else:
 		for o in N.walk():
-			if(LXX.api.F.otype.v(o) == 'word' and not F.lex_utf8.v(o) in lexemes.keys()):
-				lexemes[F.lex_utf8.v(o)] = F.freq_lemma.v(o)
-				
+			addLexes(o)
+	print(lexemes)			
 	return lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
 
 
@@ -172,12 +157,6 @@ def getChaptersDict(book):
 def getBooksDict():
 	return dict([(b, F.book.v(b)) for b in N.walk() if F.otype.v(b) == 'book'])
 
-#@app.route("/books",view_func=bookss)
-
-
-
-def noThang():
-	return "Nothing"
 
 @app.route("/wordcloud")
 def wordCloudRoute():
@@ -189,6 +168,10 @@ def wordCloudRoute():
 		filteredLexemes = {v['gloss'].split(";")[0]:int(v['count']) for (k,v) in theLexemes.items()}
 	#print(filteredLexemes)
 	title=''
+	if(request.args.get('invert')):
+		for (k,v) in filteredLexemes.items():
+			filteredLexemes[k]=-filteredLexemes[k]
+
 	if (request.args.get('title')):
 	
 		titles = []
@@ -197,7 +180,7 @@ def wordCloudRoute():
 			titles = titles + [str(sectionFromNode(int(s))) for s in sections if int(s) > 0]
 	
 		title = consolidateBibleRefs(titles)
-		print("title: " + title)
+	#	print("title: " + title)
 	
 	return Response(genWordCloudSVG(filteredLexemes,title=title), mimetype='image/svg+xml')
 
@@ -220,14 +203,21 @@ def lexemesRoute():
 	if ('SUBS' in restrict):
 		restrict.remove('SUBS')
 		restrict = restrict + ['0','1','2','3','4','5']
-		print("added SUBS")
-		print("restrict: " + str(restrict))
+		#print("added SUBS")
+		#print("restrict: " + str(restrict))
 	
 
 	min= request.args.get('min') if ( request.args.get('min')) else 1
 	gloss= True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
 	#print("Gloss: " + str(gloss))
 	return getLexemes(sections=sections, restrict=restrict, min=min, gloss=gloss)
+
+@app.route("/chapters/")
+def allChaptersRoute():
+	booksChaps={}
+	for bid in tfLxxBooksDict.keys():
+		booksChaps[bid]=getChaptersDict(bid)
+	return booksChaps
 
 @app.route("/chapters/<int:book>")
 def chaptersRoute(book):
@@ -271,16 +261,8 @@ def consolidateBibleRefs(strings):
 				if (s not in bookHash.keys()):
 					bookHash[s]={}
 
-		print(bookHash)
-		#{	[c + ":" ",".join(vs) for (c, vs) in {
-			#for (b,cvs) in bookHash.items()
-		#}
-		#newHash = {k:" "+"; ".join(cv.values) for (k,cv) in bookHash.items()}
-		#print(newHash)
-		#tArray = [b+" "+cv for (b,cv) in newHash.items()]
-		#print(tArray)
-		#outString = "; ".join(tArray)
-
+		#print(bookHash)
+		
 		for (b,cvs) in bookHash.items():
 			outString = b + " " if not outString else outString + "; " + b
 			cvss = ''
@@ -300,24 +282,3 @@ def consolidateBibleRefs(strings):
 		outString = strings[0]
 	
 	return outString
-
-
-						
-		
-
-
-routes={
-	#"":getChaptersDict,
-	#"/books": books,
-	#"/lex": lexemesRoute,
-
-	"/": gen1
-}
-	
-for uri, func in routes.items():
-	app.add_url_rule(uri,view_func=func)
-	
-#app.add_url_rule("/chapters/<int:book>", view_func=getChaptersDict)
-#app.add_url_rule("/books", view_func=books)
-    #return "<p>Hello, World!</p>"
-
