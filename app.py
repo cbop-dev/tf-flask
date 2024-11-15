@@ -233,6 +233,37 @@ def chaptersRoute(book):
 def booksRoute():
 	return getBooksDict()
 
+def getText(nodeId):
+	try:
+		return T.text(int(nodeId))
+	except:
+		return ''
+
+def getRef(nodeId):
+	try:
+		return " ".join(map(str, T.sectionFromNode(int(nodeId))))
+	except:
+		return ''
+
+
+@app.route("/text/<int:id>")
+def textRoute(id):
+	return {'section': getRef(id), 'text': getText(id), 'id':int(id)}
+
+@app.route("/texts/")
+def textsRoute():
+	texts = []
+	ids=request.args.get("sections").split(",")
+	try:
+		for id in ids:
+			texts.append({'section':getRef(id), 'text':getText(id), 'id': int(id)})
+	except:
+		texts=[]
+	return texts
+
+	
+
+
 def sectionFromNode(node):
 	section= T.sectionFromNode(node)
 	string = ''
