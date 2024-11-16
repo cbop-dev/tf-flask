@@ -22,21 +22,38 @@ posDict={
 8:  {'abbrev': 'ar', 'desc':  'pronoun, article',},
 9:  {'abbrev': 'demon', 'desc':  'pronoun, demonstrative',},
 10:  {'abbrev': 'rel2', 'desc': 'pronoun, relative, ?????',},
-11:  {'abbrev': 'c', 'desc': 'conjunction',},
-12:  {'abbrev': 'prep', 'desc':  'preposition',},
-13:  {'abbrev': 'part', 'desc': 'particle',},
+11:  {'abbrev': 'demon+n', 'desc':  'pronoun, demonstrative + noun'},
+12:  {'abbrev': 'intero', 'desc':  'pronoun, interrogative/indefinite',},
+13:  {'abbrev': 'pers+part', 'desc': 'pronoun, personal/possessive + particle',},
 14:  {'abbrev': 'num', 'desc':  'indeclinable number',},
-15:  {'abbrev': 'intero', 'desc':  'pronoun, interrogative/indefinite',},
-16:  {'abbrev': 'interj', 'desc':  'interjection',},
-17:  {'abbrev': 'c+demon', 'desc':  'conjunction + pronoun, demonstrative',},
-18:  {'abbrev': 'c+rel', 'desc': 'conjunction + pronoun, relative',},
+15:  {'abbrev': 'interj', 'desc':  'interjection',},
+16:  {'abbrev': 'prep', 'desc':  'preposition',},
+17:  {'abbrev': 'c', 'desc': 'conjunction',},
+18:  {'abbrev': 'ar+adj', 'desc': 'pronoun, article + adjective',},
 19:  {'abbrev': 'c+part', 'desc': 'conjunction + particle',},
 20:  {'abbrev': 'c+adv', 'desc': 'conjunction + adverb',},
-21:  {'abbrev': 'ar+adj', 'desc': 'pronoun, article + adjective',},
-22:  {'abbrev': 'pers+part', 'desc': 'pronoun, personal/possessive + particle',},
+21:  {'abbrev': 'c+demon', 'desc':  'conjunction + pronoun, demonstrative',},
+22:  {'abbrev': 'c+rel', 'desc': 'conjunction + pronoun, relative',},
 23:  {'abbrev': 'prep+adj', 'desc': 'preposition + adjective',},
 24:  {'abbrev': 'prep+part', 'desc': 'preposition + particle',},
-25:  {'abbrev': 'demon+n', 'desc':  'pronoun, demonstrative + noun'},
+25:  {'abbrev': 'part', 'desc': 'particle',}
+}
+
+
+posGroups={
+	"CONT":[0,1,2,3,4,5],
+	"CONTENT":[0,1,2,3,4,5],
+	"SYNT":list(range(17,26)),
+	"SYNTAX":list(range(17,26)),
+	"PREP":[16,23,24],
+	"PREPOSITIONS":[16,23,24],
+	"PREPOSITION":[16,23,24],
+	"PART":[19,25],#I'm not counting 13 (pers+part) or 24 (prep+part)
+	"PARTICLES":[19,25],
+	"PARTICLE":[19,25],
+	"PRON":list(range(6,14)),
+	"PRONOUNS":list(range(6,14)),
+	"PRONOUN":list(range(6,14)),
 }
 
 #indexed by the tf node ids, with various synonyms for searching/looking-up.
@@ -110,16 +127,16 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
-	
+	print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 	lexemes = {}
-	restrictStrings=[v['desc'] for (k,v) in posDict.items() if str(k) in restrict]
+	restrictStrings=[v['desc'] for (k,v) in posDict.items() if k in restrict]
 	
 	#print("restrictStrings: " + str(restrictStrings))
-	restrict = True if len(restrictStrings) > 0 else False
+	restricted = True if len(restrictStrings) > 0 else False
 
 	def addLexes(nodeid):
 		def addLex(wordid):
-			if(LXX.api.F.otype.v(wordid) == 'word' and (not restrict or (restrict and F.sp.v(wordid) in restrictStrings))):
+			if(LXX.api.F.otype.v(wordid) == 'word' and (not restricted or (restricted and F.sp.v(wordid) in restrictStrings))):
 					
 				if (not F.lex_utf8.v(wordid) in lexemes.keys()):
 					if (not totalCount):
@@ -167,9 +184,17 @@ def wordCloudRoute():
 		filteredLexemes= {}
 		if (not 'gloss' in list(theLexemes.values())[0].keys()):
 			filteredLexemes = {k:int(v['count']) for (k,v) in theLexemes.items()}
+			#print("Wait! no glosses??")
 		else:
-			filteredLexemes = {v['gloss'].split(";")[0]:int(v['count']) for (k,v) in theLexemes.items()}
-		#print(filteredLexemes)
+			#filteredLexemes = {v['gloss'].split(";")[0].strip():int(v['count'])
+			#	for (k,v) in sorted(theLexemes.items(),key=lambda i:i[1]['count'],reverse=True) if not (v['gloss'].split(";")[0].strip() in filteredLexemes)}
+			for (k,v) in sorted(theLexemes.items(),key=lambda i:i[1]['count'],reverse=True):
+				engGloss=v['gloss'].split(";")[0].strip()
+				if not (engGloss in filteredLexemes.keys()):
+					filteredLexemes[engGloss]=v['count']
+
+		
+		#print({l:v for (l,v) in filteredLexemes.items() if 'lord' in l or 'God' in l})
 		title=''
 		if(request.args.get('invert')):
 			for (k,v) in filteredLexemes.items():
@@ -211,18 +236,26 @@ def genWordCloudSVG(freqDataDict, title='',maxWords=200):
 @app.route("/lex")
 def lexemesRoute():
 	sections = request.args.get('sections').split(',') if ( request.args.get('sections')) else []
-	restrict= request.args.get('restrict').split(',') if ( request.args.get('restrict')) else []
-	if ('SUBS' in restrict):
-		restrict.remove('SUBS')
-		restrict = restrict + ['0','1','2','3','4','5']
-		#print("added SUBS")
+	restrictSet= set(request.args.get('restrict').split(',')) if ( request.args.get('restrict')) else set()
+	
+	for (abbrev,iArray) in posGroups.items():
+		if (abbrev in restrictSet):
+			restrictSet.update(posGroups[abbrev])
+			restrictSet.remove(abbrev)
+	print("restrictedSet: " + str(restrictSet))
+	#if ('CONT' in restrict):
+		#restrict.remove('CONT')
+		#restrict = restrict + ['0','1','2','3','4','5']
+	#if ('CONTENT' in restrict):
+		#restrict.remove('CONTENT')
+		#restrict = restrict + ['0','1','2','3','4','5']
 		#print("restrict: " + str(restrict))
 	
 
 	min= request.args.get('min') if ( request.args.get('min')) else 1
 	gloss= True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
 	#print("Gloss: " + str(gloss))
-	return getLexemes(sections=sections, restrict=restrict, min=min, gloss=gloss)
+	return getLexemes(sections=sections, restrict=list([int(x) for x in restrictSet]), min=min, gloss=gloss)
 
 @app.route("/chapters/")
 def allChaptersRoute():
