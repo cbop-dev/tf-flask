@@ -8,7 +8,7 @@
 	. .venv/bin/activate
 	pip install -r requirements.txt
 	#test:
-	flask install
+	flask run
 	#production run:
 	gunicorn -w 4 -b localhost:5000 app:app
 	# try calling from outside of venv:

@@ -23,7 +23,7 @@ Markdown==3.7
 MarkupSafe==3.0.2
 matplotlib==3.9.2
 matplotlib-inline==0.1.7
-mod-wsgi==5.0.1
+#mod-wsgi==5.0.1
 numpy==2.0.2
 packaging==24.2
 parso==0.8.4
