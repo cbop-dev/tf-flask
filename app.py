@@ -236,13 +236,13 @@ def genWordCloudSVG(freqDataDict, title='',maxWords=200):
 @app.route("/lex")
 def lexemesRoute():
 	sections = request.args.get('sections').split(',') if ( request.args.get('sections')) else []
-	restrictSet= set(request.args.get('restrict').split(',')) if ( request.args.get('restrict')) else set()
-	
+	restrictParamsList= request.args.get('restrict').split(',') if ( request.args.get('restrict')) else []
+	restrictedIds=set([int(x) for x in restrictParamsList if x.isdigit()])
 	for (abbrev,iArray) in posGroups.items():
-		if (abbrev in restrictSet):
-			restrictSet.update(posGroups[abbrev])
-			restrictSet.remove(abbrev)
-	print("restrictedSet: " + str(restrictSet))
+		if (abbrev in restrictParamsList):
+			restrictedIds.update(posGroups[abbrev])
+			#restrictedIds.remove(abbrev)
+	print("restrictedIds: " + str(restrictedIds))
 	#if ('CONT' in restrict):
 		#restrict.remove('CONT')
 		#restrict = restrict + ['0','1','2','3','4','5']
@@ -251,11 +251,11 @@ def lexemesRoute():
 		#restrict = restrict + ['0','1','2','3','4','5']
 		#print("restrict: " + str(restrict))
 	
-
+	#restrictList = list()
 	min= request.args.get('min') if ( request.args.get('min')) else 1
 	gloss= True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
 	#print("Gloss: " + str(gloss))
-	return getLexemes(sections=sections, restrict=list([int(x) for x in restrictSet]), min=min, gloss=gloss)
+	return getLexemes(sections=sections, restrict=list(restrictedIds), min=min, gloss=gloss)
 
 @app.route("/chapters/")
 def allChaptersRoute():
