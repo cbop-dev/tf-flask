@@ -114,7 +114,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	lexemes = {}
 	restrictStrings=[v['desc'] for (k,v) in posDict.items() if str(k) in restrict]
 	
-	print("restrictStrings: " + str(restrictStrings))
+	#print("restrictStrings: " + str(restrictStrings))
 	restrict = True if len(restrictStrings) > 0 else False
 
 	def addLexes(nodeid):
@@ -147,7 +147,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	else:
 		for o in N.walk():
 			addLexes(o)
-	print(lexemes)			
+	#print(lexemes)			
 	return lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
 
 
@@ -161,33 +161,39 @@ def getBooksDict():
 @app.route("/wordcloud")
 def wordCloudRoute():
 	theLexemes=lexemesRoute()
-	filteredLexemes= {}
-	if (not 'gloss' in list(theLexemes.values())[0].keys()):
-		filteredLexemes = {k:int(v['count']) for (k,v) in theLexemes.items()}
-	else:
-		filteredLexemes = {v['gloss'].split(";")[0]:int(v['count']) for (k,v) in theLexemes.items()}
-	#print(filteredLexemes)
-	title=''
-	if(request.args.get('invert')):
-		for (k,v) in filteredLexemes.items():
-			filteredLexemes[k]=-filteredLexemes[k]
+	response = ''
 
-	if (request.args.get('title') and request.args.get('sections') ):
-	
-		titles = []
-		if(request.args.get('sections')):
-			sections=request.args.get('sections').split(',')
-			titles = titles + [str(sectionFromNode(int(s))) for s in sections if int(s) > 0]
-	
-		title = consolidateBibleRefs(titles)
-	#	print("title: " + title)
-	maxWords = request.args.get('maxWords')
-	
-	if(maxWords):
-		response=Response(genWordCloudSVG(filteredLexemes,title=title,maxWords=int(maxWords)), mimetype='image/svg+xml')
-	else:
-		response=Response(genWordCloudSVG(filteredLexemes,title=title), mimetype='image/svg+xml')
+	if (theLexemes.values()):
+		filteredLexemes= {}
+		if (not 'gloss' in list(theLexemes.values())[0].keys()):
+			filteredLexemes = {k:int(v['count']) for (k,v) in theLexemes.items()}
+		else:
+			filteredLexemes = {v['gloss'].split(";")[0]:int(v['count']) for (k,v) in theLexemes.items()}
+		#print(filteredLexemes)
+		title=''
+		if(request.args.get('invert')):
+			for (k,v) in filteredLexemes.items():
+				filteredLexemes[k]=-filteredLexemes[k]
 
+		if (request.args.get('title') and request.args.get('sections') ):
+		
+			titles = []
+			if(request.args.get('sections')):
+				sections=request.args.get('sections').split(',')
+				titles = titles + [str(sectionFromNode(int(s))) for s in sections if int(s) > 0]
+		
+			title = consolidateBibleRefs(titles)
+		#	print("title: " + title)
+		maxWords = request.args.get('maxWords')
+		
+		if(maxWords):
+			response=Response(genWordCloudSVG(filteredLexemes,title=title,maxWords=int(maxWords)), mimetype='image/svg+xml')
+		else:
+			response=Response(genWordCloudSVG(filteredLexemes,title=title), mimetype='image/svg+xml')
+	else:
+		the404 = {":-(":15,"404":25, "try again!":10,"formless":3, "void": 2 }
+		response=Response(genWordCloudSVG(the404), mimetype='image/svg+xml')
+		
 	return response
 
 
