@@ -10,7 +10,7 @@
 	#test:
 	flask run
 	#production run:
-	gunicorn -w 4 -b localhost:5000 app:app
+	gunicorn -b localhost:5000 app:app
 	# try calling from outside of venv:
 	deactivate
 	.venv/bin/gunicorn -b localhost:5000 app:app
