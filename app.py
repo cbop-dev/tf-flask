@@ -36,7 +36,8 @@ posDict={
 22:  {'abbrev': 'c+rel', 'desc': 'conjunction + pronoun, relative',},
 23:  {'abbrev': 'prep+adj', 'desc': 'preposition + adjective',},
 24:  {'abbrev': 'prep+part', 'desc': 'preposition + particle',},
-25:  {'abbrev': 'part', 'desc': 'particle',}
+25:  {'abbrev': 'part', 'desc': 'particle',},
+26:  {'abbrev': 'name', 'desc':  'proper noun or name'},
 }
 
 
@@ -123,29 +124,66 @@ def getLexCount(lexid):
 	return LXX.api.Feature.freq_lemma.v(lexid)
 	
 # returns dict of lexemes and frequencies:
-def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=False):
+def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True):
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
 	print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
+	print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
 	lexemes = {}
 	restrictStrings=[v['desc'] for (k,v) in posDict.items() if k in restrict]
-	
+	excludeStrings=[v['desc'] for (k,v) in posDict.items() if k in exclude]
 	#print("restrictStrings: " + str(restrictStrings))
 	restricted = True if len(restrictStrings) > 0 else False
+	excluded  = True if len(excludeStrings) > 0 else False
+	
+	def includeWord(wordid):
+		include = False
+		if (LXX.api.F.otype.v(wordid) == 'word'):
+			beta = F.lex.v(wordid)
+			#greek = F.lex_utf8.v(wordid)
+
+			if (checkProper and (F.sp.v(wordid) == 'noun') and beta[0].isupper()): 
+				# we have a name, and must account for that fact:
+				if ((not excluded or 26 not in exclude) 
+					and (not restricted or 26 in restrict)): #we should include it
+					include = True
+			else:# don't need to worry about names
+				thePos = F.sp.v(wordid)
+				if ( (not excluded or thePos not in excludeStrings)  
+					and (not restricted or thePos in restrictStrings)):
+					include = True
+		
+		return include
+		
+				
+				
+
+
+				
+			
 
 	def addLexes(nodeid):
 		def addLex(wordid):
-			if(LXX.api.F.otype.v(wordid) == 'word' and (not restricted or (restricted and F.sp.v(wordid) in restrictStrings))):
-					
+			#if(LXX.api.F.otype.v(wordid) == 'word' and (not restricted or (restricted and F.sp.v(wordid) in restrictStrings))):
+			if(includeWord(wordid)):	
 				if (not F.lex_utf8.v(wordid) in lexemes.keys()):
-					if (not totalCount):
-						lexemes[F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
-					else:#using total counts
-						lexemes[F.lex_utf8.v(wordid)] = {'count': F.freq_lemma.v(wordid), 'id': wordid}
+					
+					lexemes[F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
+					if (totalCount):
+						lexemes[F.lex_utf8.v(wordid)]['total'] = int(F.freq_lemma.v(wordid));
 					if (gloss):
 						lexemes[F.lex_utf8.v(wordid)]['gloss'] = F.gloss.v(wordid)
-				elif (not totalCount): #only do this if we're tracking counts within the chosen sections.
+					if (pos):
+						lexemes[F.lex_utf8.v(wordid)]['pos'] = F.sp.v(wordid)
+						print("Got pos!")
+						if (lexemes[F.lex_utf8.v(wordid)]['pos'] == 'noun' and F.lex.v(wordid)[0].isupper()):
+							if (checkProper):
+								lexemes[F.lex_utf8.v(wordid)]['pos'] = 'name'
+							else:
+								lexemes[F.lex_utf8.v(wordid)]['proper'] = True
+					
+				else:
 					lexemes[F.lex_utf8.v(wordid)]['count'] += 1
 		
 		id=int(nodeid)
@@ -231,18 +269,27 @@ def genWordCloudSVG(freqDataDict, title='',maxWords=200):
 		svg = svg.replace("</svg>",'<text font-size="50" style="text-decoration: underline; font-family: \'Arial\'; font-variant: small-caps; font-weight: bold" transform="translate(149,650)">' + title +'</text></svg>')
 		svg = svg.replace('height="600"', 'height="700"')
 	return svg
-	
 
 @app.route("/lex")
 def lexemesRoute():
+	checkProper =  True if request.args.get('proper') != 'false' else False
+	print("lex route: checkProper = " + str(checkProper))
 	sections = request.args.get('sections').split(',') if ( request.args.get('sections')) else []
 	restrictParamsList= request.args.get('restrict').split(',') if ( request.args.get('restrict')) else []
+	excludeParamsList= request.args.get('exclude').split(',') if ( request.args.get('exclude')) else []
+	pos = request.args.get('pos')
 	restrictedIds=set([int(x) for x in restrictParamsList if x.isdigit()])
 	for (abbrev,iArray) in posGroups.items():
 		if (abbrev in restrictParamsList):
 			restrictedIds.update(posGroups[abbrev])
 			#restrictedIds.remove(abbrev)
 	print("restrictedIds: " + str(restrictedIds))
+
+	excludedIds=set([int(x) for x in excludeParamsList if x.isdigit()])
+	for (abbrev,iArray) in posGroups.items():
+		if (abbrev in excludeParamsList):
+			excludedIds.update(posGroups[abbrev])
+	print("excludedIds: " + str(excludedIds))
 	#if ('CONT' in restrict):
 		#restrict.remove('CONT')
 		#restrict = restrict + ['0','1','2','3','4','5']
@@ -255,7 +302,7 @@ def lexemesRoute():
 	min= request.args.get('min') if ( request.args.get('min')) else 1
 	gloss= True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
 	#print("Gloss: " + str(gloss))
-	return getLexemes(sections=sections, restrict=list(restrictedIds), min=min, gloss=gloss)
+	return getLexemes(sections=sections, restrict=list(restrictedIds), exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper)
 
 @app.route("/chapters/")
 def allChaptersRoute():
@@ -271,6 +318,47 @@ def chaptersRoute(book):
 @app.route("/books")
 def booksRoute():
 	return getBooksDict()
+
+@app.route("/getrefs/<int:id>")
+def getrefsRoute(id):
+	return getLexRefs(id)
+
+# returns refs as {'refs': <string array>, 'nodes': <int array of verses>}
+def getLexRefs(id):
+	if(F.otype.v(int(id)) == 'word'):
+		lex=F.lex_utf8.v(id)
+		rNodes = set()
+		queryDetail = 'verse'
+
+		if (request.args.get("detail")):
+			if (request.args.get("detail") == "book"):
+				queryDetail = 'book'
+			elif (request.args.get("detail") == "chapter"):
+				queryDetail = 'chapter'
+
+		refs = set()
+		for n in N.walk():
+			if (F.otype.v(n) == 'word' and  F.lex_utf8.v(n)==lex):
+				sectionTuple= T.sectionTuple(n)
+				if (queryDetail == 'book'):
+					sectionNode = sectionTuple[0]
+				elif (queryDetail == 'chapter'):
+					sectionNode = sectionTuple[1]
+				else:
+					sectionNode = sectionTuple[2]
+
+				rNodes.add(sectionNode) # gets node of containing verse
+				refTuple = T.sectionFromNode(n) # gets tuple of containing verse
+				if (queryDetail == 'book'):
+					refString = refTuple[0]
+				elif (queryDetail == 'chapter'):
+					refString = refTuple[0] + " " + str(refTuple[1])
+				else:
+					refString = refTuple[0] + " " + ":".join(map(str,refTuple[1:]))
+				refs.add(refString)
+		return {'refs': list(refs), 'nodes': list(rNodes)}
+	else:
+		return ''
 
 def getText(nodeId):
 	try:
