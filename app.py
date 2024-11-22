@@ -232,7 +232,8 @@ def getBooksDict():
 
 @app.route("/wordcloud")
 def wordCloudRoute():
-	theLexemes=lexemesRoute()
+	theLexemesResp=lexemesRoute()
+	theLexemes=theLexemesResp['lexemes']
 	response = ''
 
 	if (theLexemes.values()):
