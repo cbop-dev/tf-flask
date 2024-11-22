@@ -4,11 +4,16 @@ from tf.fabric import Fabric
 from tf.app import use
 from wordcloud import WordCloud, STOPWORDS
 from pathlib import Path
+from flask_cors import CORS
+
+
+
+
 
 LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
 
 app = Flask(__name__)
-
+CORS(app)
 
 posDict={
 0:  {'abbrev': 'n', 'desc':  'noun',},
