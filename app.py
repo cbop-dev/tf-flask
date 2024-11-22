@@ -55,6 +55,7 @@ posGroups={
 	"PRON":list(range(6,14)),
 	"PRONOUNS":list(range(6,14)),
 	"PRONOUN":list(range(6,14)),
+	
 }
 
 #indexed by the tf node ids, with various synonyms for searching/looking-up.
@@ -131,6 +132,8 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 	print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
 	lexemes = {}
+	totalWords = 0
+	totalLexemes = 0
 	restrictStrings=[v['desc'] for (k,v) in posDict.items() if k in restrict]
 	excludeStrings=[v['desc'] for (k,v) in posDict.items() if k in exclude]
 	#print("restrictStrings: " + str(restrictStrings))
@@ -139,6 +142,14 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	
 	def includeWord(wordid):
 		include = False
+		nonlocal excludeStrings
+		nonlocal restrictStrings
+		nonlocal checkProper
+		nonlocal totalWords
+		nonlocal totalLexemes
+		nonlocal excluded
+		nonlocal restricted
+
 		if (LXX.api.F.otype.v(wordid) == 'word'):
 			beta = F.lex.v(wordid)
 			#greek = F.lex_utf8.v(wordid)
@@ -156,19 +167,15 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		
 		return include
 		
-				
-				
-
-
-				
-			
 
 	def addLexes(nodeid):
 		def addLex(wordid):
-			#if(LXX.api.F.otype.v(wordid) == 'word' and (not restricted or (restricted and F.sp.v(wordid) in restrictStrings))):
 			if(includeWord(wordid)):	
+				nonlocal totalWords
+				nonlocal totalLexemes
+				totalWords += 1
 				if (not F.lex_utf8.v(wordid) in lexemes.keys()):
-					
+					totalLexemes +=1
 					lexemes[F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
 					if (totalCount):
 						lexemes[F.lex_utf8.v(wordid)]['total'] = int(F.freq_lemma.v(wordid));
@@ -203,7 +210,12 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		for o in N.walk():
 			addLexes(o)
 	#print(lexemes)			
-	return lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
+	theResponseObj = {
+		'totalWords': totalWords,
+		'totalLexemes': totalLexemes,
+		'lexemes': lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
+	}
+	return  theResponseObj
 
 
 def getChaptersDict(book):
