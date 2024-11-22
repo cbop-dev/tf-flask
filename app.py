@@ -134,11 +134,14 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
+		
 	print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 	print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
 	lexemes = {}
-	totalWords = 0
+
+	totalInstances = 0
 	totalLexemes = 0
+	totalWordsInSections = 0
 	restrictStrings=[v['desc'] for (k,v) in posDict.items() if k in restrict]
 	excludeStrings=[v['desc'] for (k,v) in posDict.items() if k in exclude]
 	#print("restrictStrings: " + str(restrictStrings))
@@ -146,17 +149,20 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	excluded  = True if len(excludeStrings) > 0 else False
 	
 	def includeWord(wordid):
+		wordid=int(wordid)
 		include = False
 		nonlocal excludeStrings
 		nonlocal restrictStrings
 		nonlocal checkProper
-		nonlocal totalWords
+		nonlocal totalInstances
+		nonlocal totalWordsInSections
 		nonlocal totalLexemes
 		nonlocal excluded
 		nonlocal restricted
 
-		if (LXX.api.F.otype.v(wordid) == 'word'):
+		if (F.otype.v(wordid) == 'word'):
 			beta = F.lex.v(wordid)
+			totalWordsInSections += 1
 			#greek = F.lex_utf8.v(wordid)
 
 			if (checkProper and (F.sp.v(wordid) == 'noun') and beta[0].isupper()): 
@@ -173,12 +179,14 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		return include
 		
 
-	def addLexes(nodeid):
+	def addLexes(nodeid,recursive=False):
 		def addLex(wordid):
+			nonlocal totalInstances
+			nonlocal totalLexemes
+			nonlocal totalWordsInSections
 			if(includeWord(wordid)):	
-				nonlocal totalWords
-				nonlocal totalLexemes
-				totalWords += 1
+				
+				totalInstances += 1
 				if (not F.lex_utf8.v(wordid) in lexemes.keys()):
 					totalLexemes +=1
 					lexemes[F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
@@ -199,25 +207,31 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 					lexemes[F.lex_utf8.v(wordid)]['count'] += 1
 		
 		id=int(nodeid)
-		if (L.d(id)):
-			for w in L.d(int(id)):
-				addLex(w)
-		else:
+		if (L.d(id) and not recursive):
+			for w in L.d(id):
+				addLexes(w,recursive=True)
+		elif(F.otype.v(id) == 'word'):
 			addLex(id)
 		
 	
 	#print("sections: " + str(sections))
 	if(len(sections) > 0):
 		for s in sections:
-			s = int(s)
-			addLexes(s)
+			s=int(s)
+			foundSuper = False
+			for supersect in L.u(s):
+				if ((str(supersect) in sections) or (supersect in sections)):
+					foundSuper = True
+			if(not foundSuper):
+				addLexes(s)
 	else:
 		for o in N.walk():
 			addLexes(o)
 	#print(lexemes)			
 	theResponseObj = {
-		'totalWords': totalWords,
+		'totalInstances': totalInstances,
 		'totalLexemes': totalLexemes,
+		'totalWords':totalWordsInSections,
 		'lexemes': lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
 	}
 	return  theResponseObj
