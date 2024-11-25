@@ -199,7 +199,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 						print("Got pos!")
 						if (lexemes[F.lex_utf8.v(wordid)]['pos'] == 'noun' and F.lex.v(wordid)[0].isupper()):
 							if (checkProper):
-								lexemes[F.lex_utf8.v(wordid)]['pos'] = 'name'
+								lexemes[F.lex_utf8.v(wordid)]['pos'] = 'proper noun or name'
 							else:
 								lexemes[F.lex_utf8.v(wordid)]['proper'] = True
 					
