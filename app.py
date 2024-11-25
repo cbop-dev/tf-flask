@@ -6,10 +6,6 @@ from wordcloud import WordCloud, STOPWORDS
 from pathlib import Path
 from flask_cors import CORS
 
-
-
-
-
 LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
 
 app = Flask(__name__)
@@ -27,24 +23,23 @@ posDict={
 8:  {'abbrev': 'ar', 'desc':  'pronoun, article',},
 9:  {'abbrev': 'demon', 'desc':  'pronoun, demonstrative',},
 10:  {'abbrev': 'rel2', 'desc': 'pronoun, relative, ?????',},
-11:  {'abbrev': 'demon+n', 'desc':  'pronoun, demonstrative + noun'},
-12:  {'abbrev': 'intero', 'desc':  'pronoun, interrogative/indefinite',},
-13:  {'abbrev': 'pers+part', 'desc': 'pronoun, personal/possessive + particle',},
+11:  {'abbrev': 'c', 'desc': 'conjunction',},
+12:  {'abbrev': 'prep', 'desc':  'preposition',},
+13:  {'abbrev': 'part', 'desc': 'particle',},
 14:  {'abbrev': 'num', 'desc':  'indeclinable number',},
-15:  {'abbrev': 'interj', 'desc':  'interjection',},
-16:  {'abbrev': 'prep', 'desc':  'preposition',},
-17:  {'abbrev': 'c', 'desc': 'conjunction',},
-18:  {'abbrev': 'ar+adj', 'desc': 'pronoun, article + adjective',},
+15:  {'abbrev': 'intero', 'desc':  'pronoun, interrogative/indefinite',},
+16:  {'abbrev': 'interj', 'desc':  'interjection',},
+17:  {'abbrev': 'c+demon', 'desc':  'conjunction + pronoun, demonstrative',},
+18:  {'abbrev': 'c+rel', 'desc': 'conjunction + pronoun, relative',},
 19:  {'abbrev': 'c+part', 'desc': 'conjunction + particle',},
 20:  {'abbrev': 'c+adv', 'desc': 'conjunction + adverb',},
-21:  {'abbrev': 'c+demon', 'desc':  'conjunction + pronoun, demonstrative',},
-22:  {'abbrev': 'c+rel', 'desc': 'conjunction + pronoun, relative',},
+21:  {'abbrev': 'ar+adj', 'desc': 'pronoun, article + adjective',},
+22:  {'abbrev': 'pers+part', 'desc': 'pronoun, personal/possessive + particle',},
 23:  {'abbrev': 'prep+adj', 'desc': 'preposition + adjective',},
 24:  {'abbrev': 'prep+part', 'desc': 'preposition + particle',},
-25:  {'abbrev': 'part', 'desc': 'particle',},
+25:  {'abbrev': 'demon+n', 'desc':  'pronoun, demonstrative + noun'},
 26:  {'abbrev': 'name', 'desc':  'proper noun or name'},
 }
-
 
 posGroups={
 	"CONT":[0,1,2,3,4,5],
