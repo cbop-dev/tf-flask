@@ -160,7 +160,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 			totalWordsInSections += 1
 			#greek = F.lex_utf8.v(wordid)
 
-			if (checkProper and (F.sp.v(wordid) == 'noun') and beta[0].isupper()): 
+			if (checkProper and (F.sp.v(wordid) == 'noun') and F.lex_utf8.v(wordid)[0].isupper()): 
 				# we have a name, and must account for that fact:
 				if ((not excluded or 26 not in exclude) 
 					and (not restricted or 26 in restrict)): #we should include it
@@ -192,7 +192,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 					if (pos):
 						lexemes[F.lex_utf8.v(wordid)]['pos'] = F.sp.v(wordid)
 						print("Got pos!")
-						if (lexemes[F.lex_utf8.v(wordid)]['pos'] == 'noun' and F.lex.v(wordid)[0].isupper()):
+						if (lexemes[F.lex_utf8.v(wordid)]['pos'] == 'noun' and F.lex_utf8.v(wordid)[0].isupper()):
 							if (checkProper):
 								lexemes[F.lex_utf8.v(wordid)]['pos'] = 'proper noun or name'
 							else:
