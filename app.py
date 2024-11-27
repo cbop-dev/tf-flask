@@ -149,11 +149,11 @@ def getLexCount(lexid):
 	return LXX.api.Feature.freq_lemma.v(lexid)
 	
 # returns dict of lexemes and frequencies:
-def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True):
+def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all'):
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
-		
+
 	print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 	print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
 	lexemes = {}
@@ -170,17 +170,22 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	def includeWord(wordid):
 		wordid=int(wordid)
 		include = False
-		nonlocal excludeStrings
-		nonlocal restrictStrings
+		nonlocal beta
 		nonlocal checkProper
-		nonlocal totalInstances
-		nonlocal totalWordsInSections
-		nonlocal totalLexemes
+		nonlocal excludeStrings
 		nonlocal excluded
+		nonlocal gloss
+		nonlocal pos
+		nonlocal restrictStrings
 		nonlocal restricted
+		nonlocal totalCount
+		nonlocal totalInstances
+		nonlocal totalLexemes
+		nonlocal totalWordsInSections
+
 
 		if (F.otype.v(wordid) == 'word'):
-			beta = F.lex.v(wordid)
+			#beta = F.lex.v(wordid)
 			totalWordsInSections += 1
 			#greek = F.lex_utf8.v(wordid)
 
@@ -203,6 +208,11 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 			nonlocal totalInstances
 			nonlocal totalLexemes
 			nonlocal totalWordsInSections
+			nonlocal beta
+			nonlocal gloss
+			nonlocal totalCount
+			nonlocal pos
+
 			if(includeWord(wordid)):	
 				
 				totalInstances += 1
@@ -213,6 +223,8 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 						lexemes[F.lex_utf8.v(wordid)]['total'] = int(F.freq_lemma.v(wordid));
 					if (gloss):
 						lexemes[F.lex_utf8.v(wordid)]['gloss'] = F.gloss.v(wordid)
+					if (beta):
+						lexemes[F.lex_utf8.v(wordid)]['beta'] = F.lex.v(wordid)
 					if (pos):
 						lexemes[F.lex_utf8.v(wordid)]['pos'] = F.sp.v(wordid)
 						print("Got pos!")
@@ -232,7 +244,6 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		elif(F.otype.v(id) == 'word'):
 			addLex(id)
 		
-	
 	#print("sections: " + str(sections))
 	if(len(sections) > 0):
 		for s in sections:
@@ -248,11 +259,12 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 			addLexes(o)
 	#print(lexemes)			
 	theResponseObj = {
-		'totalInstances': totalInstances,
+		'totalInstances': totalInstances,#i.e., number of words in this section
 		'totalLexemes': totalLexemes,
 		'totalWords':totalWordsInSections,
 		'lexemes': lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
 	}
+	
 	return  theResponseObj
 
 
@@ -261,7 +273,6 @@ def getChaptersDict(book):
 	
 def getBooksDict():
 	return dict([(b, F.book.v(b)) for b in N.walk() if F.otype.v(b) == 'book'])
-
 
 @app.route("/wordcloud")
 def wordCloudRoute():
@@ -329,6 +340,7 @@ def lexemesRoute():
 	restrictParamsList= request.args.get('restrict').split(',') if ( request.args.get('restrict')) else []
 	excludeParamsList= request.args.get('exclude').split(',') if ( request.args.get('exclude')) else []
 	pos = request.args.get('pos')
+	beta = request.args.get('beta') if request.args.get('beta') else True
 	restrictedIds=set([int(x) for x in restrictParamsList if x.isdigit()])
 	for (abbrev,iArray) in posGroups.items():
 		if (abbrev in restrictParamsList):
@@ -353,7 +365,7 @@ def lexemesRoute():
 	min= request.args.get('min') if ( request.args.get('min')) else 1
 	gloss= True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
 	#print("Gloss: " + str(gloss))
-	return getLexemes(sections=sections, restrict=list(restrictedIds), exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper)
+	return getLexemes(sections=sections, restrict=list(restrictedIds), exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper, beta=beta)
 
 @app.route("/chapters/")
 def allChaptersRoute():
