@@ -119,6 +119,30 @@ tfLxxBooksDict = {
 	623750: {'abbrev': "SusTh", 'syn': ['Susanna Th','SusannaTh']},
 }
 
+@app.route("/lex/common/")
+def getCommonRoute():
+	return ''
+@app.route("/lex/<int:lexid>")
+def getLexInfoRoute(lexid):
+	return getLexInfo(lexid)
+
+def getLexInfo(lexid):
+	lexid=int(lexid)
+	if (lexid > 0 and F.otype.v(lexid) == 'word'):
+		theLexObj = {'id': lexid}
+		theLexObj['total'] = F.freq_lemma.v(lexid)
+		theLexObj['gloss'] = F.gloss.v(lexid)
+		theLexObj['greek'] = F.lex_utf8.v(lexid)
+		theLexObj['beta']=F.lex.v(lexid)
+		theLexObj['pos'] = F.sp.v(lexid) if theLexObj['greek'][0].islower() else 'proper noun or name'
+		
+		return theLexObj
+	else:
+		return ''
+		
+			
+
+
 
 @app.route("/lex/freq/<int:lexid>")
 def getLexCount(lexid):
