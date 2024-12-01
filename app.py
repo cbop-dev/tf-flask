@@ -139,8 +139,7 @@ def getLexInfo(lexid):
 		return theLexObj
 	else:
 		return ''
-		
-			
+
 
 
 
@@ -390,7 +389,7 @@ def getrefsRoute(id):
 def getLexRefs(id):
 	if(F.otype.v(int(id)) == 'word'):
 		lex=F.lex_utf8.v(id)
-		rNodes = set()
+		rNodes = {}
 		queryDetail = 'verse'
 
 		if (request.args.get("detail")):
@@ -399,7 +398,7 @@ def getLexRefs(id):
 			elif (request.args.get("detail") == "chapter"):
 				queryDetail = 'chapter'
 
-		refs = set()
+		#refs = {}
 		for n in N.walk():
 			if (F.otype.v(n) == 'word' and  F.lex_utf8.v(n)==lex):
 				sectionTuple= T.sectionTuple(n)
@@ -410,7 +409,7 @@ def getLexRefs(id):
 				else:
 					sectionNode = sectionTuple[2]
 
-				rNodes.add(sectionNode) # gets node of containing verse
+				#rNodes.add(sectionNode) # gets node of containing verse
 				refTuple = T.sectionFromNode(n) # gets tuple of containing verse
 				if (queryDetail == 'book'):
 					refString = refTuple[0]
@@ -418,8 +417,9 @@ def getLexRefs(id):
 					refString = refTuple[0] + " " + str(refTuple[1])
 				else:
 					refString = refTuple[0] + " " + ":".join(map(str,refTuple[1:]))
-				refs.add(refString)
-		return {'refs': list(refs), 'nodes': list(rNodes)}
+				#refs.add(refString)
+				rNodes[sectionNode]=refString
+		return {'refs': list(rNodes.values()), 'nodes': list(rNodes.keys())}
 	else:
 		return ''
 
@@ -438,7 +438,7 @@ def getRef(nodeId):
 
 @app.route("/text/<int:id>")
 def textRoute(id):
-	return {'section': getRef(id), 'text': getText(id), 'id':int(id)}
+	return {'section': getRef(id), 'text': getText(id), 'id':int(id), 'type': F.otype.v(int(id))}
 
 @app.route("/texts/")
 def textsRoute():
