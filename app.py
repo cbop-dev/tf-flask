@@ -241,7 +241,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 				else:
 					lexemes[F.lex_utf8.v(wordid)]['count'] += 1
 					if (common):
-						sectionsLexemes[F.lex_utf8.v(wordid)].update([s for s in (set(L.u(wordid)) & set(sections))])
+						sectionsLexemes[F.lex_utf8.v(wordid)].update([int(s) for s in (set(L.u(wordid)) & set(sections))])
 		
 		id=int(nodeid)
 		if (L.d(id) and not recursive):
@@ -406,7 +406,11 @@ def getrefsRoute(id):
 
 # returns refs as {'refs': <string array>, 'nodes': <int array of verses>}
 def getLexRefs(id):
-	if(F.otype.v(int(id)) == 'word'):
+	# optionally limits to instances within any of the selected sections, exluding all others:
+	id=int(id)
+	sections = [int(s) for s in request.args.get('sections').split(',')] if request.args.get('sections') else []
+	print("getrefs: sections = [" + ",".join([str(s) for s in sections])+"]")
+	if(F.otype.v(id) == 'word'):
 		lex=F.lex_utf8.v(id)
 		rNodes = {}
 		queryDetail = 'verse'
@@ -419,7 +423,7 @@ def getLexRefs(id):
 
 		#refs = {}
 		for n in N.walk():
-			if (F.otype.v(n) == 'word' and  F.lex_utf8.v(n)==lex):
+			if (F.otype.v(n) == 'word' and  F.lex_utf8.v(n)==lex and (len(sections) == 0 or (len(set(L.u(n)) & set(sections)) > 0) )):
 				sectionTuple= T.sectionTuple(n)
 				if (queryDetail == 'book'):
 					sectionNode = sectionTuple[0]
