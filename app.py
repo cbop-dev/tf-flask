@@ -148,14 +148,15 @@ def getLexCount(lexid):
 	return LXX.api.Feature.freq_lemma.v(lexid)
 	
 # returns dict of lexemes and frequencies:
-def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all'):
+def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all',common=False):
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
-
-	print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
-	print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
+	#print("getLexemes with sections = " + ",".join([str(s) for s in sections]) +"; common: " + str(common))
+	#print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
+	#print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
 	lexemes = {}
+	sectionsLexemes = {}
 
 	totalInstances = 0
 	totalLexemes = 0
@@ -218,6 +219,10 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 				if (not F.lex_utf8.v(wordid) in lexemes.keys()):
 					totalLexemes +=1
 					lexemes[F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
+					# track which of the give sections this word is in:
+					if (common):
+						sectionsLexemes[F.lex_utf8.v(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
+
 					if (totalCount):
 						lexemes[F.lex_utf8.v(wordid)]['total'] = int(F.freq_lemma.v(wordid));
 					if (gloss):
@@ -226,7 +231,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 						lexemes[F.lex_utf8.v(wordid)]['beta'] = F.lex.v(wordid)
 					if (pos):
 						lexemes[F.lex_utf8.v(wordid)]['pos'] = F.sp.v(wordid)
-						print("Got pos!")
+						#print("Got pos!")
 						if (lexemes[F.lex_utf8.v(wordid)]['pos'] == 'noun' and F.lex_utf8.v(wordid)[0].isupper()):
 							if (checkProper):
 								lexemes[F.lex_utf8.v(wordid)]['pos'] = 'proper noun or name'
@@ -235,6 +240,8 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 					
 				else:
 					lexemes[F.lex_utf8.v(wordid)]['count'] += 1
+					if (common):
+						sectionsLexemes[F.lex_utf8.v(wordid)].update([s for s in (set(L.u(wordid)) & set(sections))])
 		
 		id=int(nodeid)
 		if (L.d(id) and not recursive):
@@ -264,6 +271,11 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		'lexemes': lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
 	}
 	
+	if (common):
+		commonLexes = [g for (g,ss) in sectionsLexemes.items() if set(sections) <= ss]
+		#print("commonlexes length: " + str(len(commonLexes)))
+	#	print("set repon.common to: "+str(len(theResponseObj['common'])))
+		theResponseObj['common']=commonLexes
 	return  theResponseObj
 
 
@@ -334,12 +346,15 @@ def genWordCloudSVG(freqDataDict, title='',maxWords=200):
 @app.route("/lex")
 def lexemesRoute():
 	checkProper =  True if request.args.get('proper') != 'false' else False
-	print("lex route: checkProper = " + str(checkProper))
-	sections = request.args.get('sections').split(',') if ( request.args.get('sections')) else []
+	#print("lex route: checkProper = " + str(checkProper))
+	sections = [int(s) for s in request.args.get('sections').split(',') if ( request.args.get('sections')) ]
 	restrictParamsList= request.args.get('restrict').split(',') if ( request.args.get('restrict')) else []
 	excludeParamsList= request.args.get('exclude').split(',') if ( request.args.get('exclude')) else []
 	pos = request.args.get('pos')
 	beta = request.args.get('beta') if request.args.get('beta') else True
+	common = True if request.args.get('common') else False
+	#if (common):
+#		print("using common flag...")
 	restrictedIds=set([int(x) for x in restrictParamsList if x.isdigit()])
 	for (abbrev,iArray) in posGroups.items():
 		if (abbrev in restrictParamsList):
@@ -364,7 +379,11 @@ def lexemesRoute():
 	min= request.args.get('min') if ( request.args.get('min')) else 1
 	gloss= True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
 	#print("Gloss: " + str(gloss))
-	return getLexemes(sections=sections, restrict=list(restrictedIds), exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper, beta=beta)
+	#print("calling getLexemes with common = " + str(common))
+	returnObject= getLexemes(sections=sections, restrict=list(restrictedIds), 
+						  exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper, beta=beta, common=common)
+	#print("getLexemes about to return with common value of: [" + ",".join(returnObject['common']) + "]")
+	return returnObject
 
 @app.route("/chapters/")
 def allChaptersRoute():
