@@ -6,9 +6,14 @@ from wordcloud import WordCloud, STOPWORDS
 from pathlib import Path
 from flask_cors import CORS
 
+BHS = use('etcbc/bhsa')
+bhsA = BHS.api
 LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
 
+#app = Flask(__name__, subdomain_matching=True)
 app = Flask(__name__)
+#app.config['SERVER_NAME'] = "tf.cbop.faith:5000"
+app.config['SERVER_NAME'] = "localhost.localdomain:5000"
 CORS(app)
 
 posDict={
@@ -119,42 +124,72 @@ tfLxxBooksDict = {
 	623750: {'abbrev': "SusTh", 'syn': ['Susanna Th','SusannaTh']},
 }
 
+@app.route("/<string:db>/lex/common/")
 @app.route("/lex/common/")
-def getCommonRoute():
+def getCommonRoute(db='lxx'):
 	return ''
-@app.route("/lex/<int:lexid>")
-def getLexInfoRoute(lexid):
-	return getLexInfo(lexid)
 
-def getLexInfo(lexid):
+@app.route("/<string:db>/lex/<int:lexid>")
+@app.route("/lex/<int:lexid>")
+def getLexInfo(lexid,db='lxx'):
 	lexid=int(lexid)
-	if (lexid > 0 and F.otype.v(lexid) == 'word'):
-		theLexObj = {'id': lexid}
-		theLexObj['total'] = F.freq_lemma.v(lexid)
-		theLexObj['gloss'] = F.gloss.v(lexid)
-		theLexObj['greek'] = F.lex_utf8.v(lexid)
-		theLexObj['beta']=F.lex.v(lexid)
-		theLexObj['pos'] = F.sp.v(lexid) if theLexObj['greek'][0].islower() else 'proper noun or name'
-		
-		return theLexObj
+	if (db == 'lxx'):
+		if (lexid > 0 and F.otype.v(lexid) == 'word'):
+			theLexObj = {'id': lexid}
+			theLexObj['total'] = F.freq_lemma.v(lexid)
+			theLexObj['gloss'] = F.gloss.v(lexid)
+			
+			theLexObj['beta']=F.lex.v(lexid)
+			theLexObj['greek'] = F.lex_utf8.v(lexid)
+			theLexObj['pos'] = F.sp.v(lexid) if theLexObj['greek'][0].islower() else 'proper noun or name'
+			
+			return theLexObj
+	elif (db == 'bhs'):
+		bhsF=BHS.api.F
+		if (lexid > 0 and bhsF.otype.v(lexid) == 'word'):
+			theLexObj = {'id': lexid}
+			theLexObj['total'] = bhsF.freq_lex.v(lexid)
+			theLexObj['gloss'] = bhsF.gloss.v(lexid)
+			theLexObj['beta']=bhsF.lex.v(lexid)
+			theLexObj['hebrew'] = bhsF.lex_utf8.v(lexid)
+			theLexObj['pos'] = bhsF.sp.v(lexid)
+			return theLexObj
+
 	else:
 		return ''
 
+#@app.route("/test", subdomain="bhs")
+@app.route("/bhs/test")
+#@app.route("/test")
+def bhsTest():
+	return "Hello BHS World!"
 
-
-
+@app.route("/<string:db>/lex/freq/<int:lexid>")
 @app.route("/lex/freq/<int:lexid>")
-def getLexCount(lexid):
-	return LXX.api.Feature.freq_lemma.v(lexid)
+def getLexCount(lexid, db='lxx'):
+	
+	if (db == 'lxx'):
+		return LXX.api.Feature.freq_lemma.v(lexid)
+	elif (db == 'bhs'):
+		print("db == bhs...")
+		count = str(bhsA.Feature.freq_lex.v(lexid))
+		print ("count: " + count)
+		return count
 	
 # returns dict of lexemes and frequencies:
-def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all',common=False):
+def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all',common=False, db='lxx'):
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
 	#print("getLexemes with sections = " + ",".join([str(s) for s in sections]) +"; common: " + str(common))
 	#print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 	#print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
+
+	if (db=='lxx'):
+		api = LXX.api 
+	elif (db=='bhs'):
+		api=BHS.api
+	
 	lexemes = {}
 	sectionsLexemes = {}
 
@@ -184,18 +219,19 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		nonlocal totalWordsInSections
 
 
-		if (F.otype.v(wordid) == 'word'):
+		if (api.F.otype.v(wordid) == 'word'):
 			#beta = F.lex.v(wordid)
 			totalWordsInSections += 1
 			#greek = F.lex_utf8.v(wordid)
 
-			if (checkProper and (F.sp.v(wordid) == 'noun') and F.lex_utf8.v(wordid)[0].isupper()): 
+			if (checkProper and ((db == 'lxx' and api.F.sp.v(wordid) == 'noun') and api.F.lex_utf8.v(wordid)[0].isupper())
+	   			or db=='bhs' and api.F.sp.v(wordid) == 'nmpr'): 
 				# we have a name, and must account for that fact:
 				if ((not excluded or 26 not in exclude) 
 					and (not restricted or 26 in restrict)): #we should include it
 					include = True
 			else:# don't need to worry about names
-				thePos = F.sp.v(wordid)
+				thePos = api.F.sp.v(wordid)
 				if ( (not excluded or thePos not in excludeStrings)  
 					and (not restricted or thePos in restrictStrings)):
 					include = True
@@ -216,38 +252,42 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 			if(includeWord(wordid)):	
 				
 				totalInstances += 1
-				if (not F.lex_utf8.v(wordid) in lexemes.keys()):
+				if (not api.F.lex_utf8.v(wordid) in lexemes.keys()):
 					totalLexemes +=1
-					lexemes[F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
+					lexemes[api.F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
 					# track which of the give sections this word is in:
 					if (common):
-						sectionsLexemes[F.lex_utf8.v(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
+						sectionsLexemes[api.F.lex_utf8.v(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
 
 					if (totalCount):
-						lexemes[F.lex_utf8.v(wordid)]['total'] = int(F.freq_lemma.v(wordid));
+						if (db=='lxx'):
+							lexemes[api.F.lex_utf8.v(wordid)]['total'] = int(api.F.freq_lemma.v(wordid));
+						elif(db=='bhs'):
+							lexemes[api.F.lex_utf8.v(wordid)]['total'] = int(api.F.freq_lex.v(wordid));
 					if (gloss):
-						lexemes[F.lex_utf8.v(wordid)]['gloss'] = F.gloss.v(wordid)
+						lexemes[api.F.lex_utf8.v(wordid)]['gloss'] = api.F.gloss.v(wordid)
 					if (beta):
-						lexemes[F.lex_utf8.v(wordid)]['beta'] = F.lex.v(wordid)
+						lexemes[api.F.lex_utf8.v(wordid)]['beta'] = api.F.lex.v(wordid)
 					if (pos):
-						lexemes[F.lex_utf8.v(wordid)]['pos'] = F.sp.v(wordid)
+						lexemes[api.F.lex_utf8.v(wordid)]['pos'] = api.F.sp.v(wordid)
 						#print("Got pos!")
-						if (lexemes[F.lex_utf8.v(wordid)]['pos'] == 'noun' and F.lex_utf8.v(wordid)[0].isupper()):
-							if (checkProper):
-								lexemes[F.lex_utf8.v(wordid)]['pos'] = 'proper noun or name'
+						if ((db == 'lxx' and lexemes[api.F.lex_utf8.v(wordid)]['pos'] == 'noun' and api.F.lex_utf8.v(wordid)[0].isupper())
+		  					or (db == 'bhs' and lexemes[api.F.lex_utf8.v(wordid)]['pos']=='nmpr')):
+							if (checkProper and db=='lxx'):
+								lexemes[api.F.lex_utf8.v(wordid)]['pos'] = 'proper noun or name'
 							else:
-								lexemes[F.lex_utf8.v(wordid)]['proper'] = True
+								lexemes[api.F.lex_utf8.v(wordid)]['proper'] = True
 					
 				else:
-					lexemes[F.lex_utf8.v(wordid)]['count'] += 1
+					lexemes[api.F.lex_utf8.v(wordid)]['count'] += 1
 					if (common):
-						sectionsLexemes[F.lex_utf8.v(wordid)].update([int(s) for s in (set(L.u(wordid)) & set(sections))])
+						sectionsLexemes[api.F.lex_utf8.v(wordid)].update([int(s) for s in (set(api.L.u(wordid)) & set(sections))])
 		
 		id=int(nodeid)
-		if (L.d(id) and not recursive):
-			for w in L.d(id):
+		if (api.L.d(id) and not recursive):
+			for w in api.L.d(id):
 				addLexes(w,recursive=True)
-		elif(F.otype.v(id) == 'word'):
+		elif(api.F.otype.v(id) == 'word'):
 			addLex(id)
 		
 	#print("sections: " + str(sections))
@@ -255,13 +295,13 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		for s in sections:
 			s=int(s)
 			foundSuper = False
-			for supersect in L.u(s):
+			for supersect in api.L.u(s):
 				if ((str(supersect) in sections) or (supersect in sections)):
 					foundSuper = True
 			if(not foundSuper):
 				addLexes(s)
 	else:
-		for o in N.walk():
+		for o in api.N.walk():
 			addLexes(o)
 	#print(lexemes)			
 	theResponseObj = {
@@ -343,13 +383,18 @@ def genWordCloudSVG(freqDataDict, title='',maxWords=200):
 		svg = svg.replace('height="600"', 'height="700"')
 	return svg
 
+@app.route("/<string:db>/lex")
 @app.route("/lex")
-def lexemesRoute():
+def lexemesRoute(db='lxx'):
 	checkProper =  True if request.args.get('proper') != 'false' else False
 	#print("lex route: checkProper = " + str(checkProper))
-	sections = [int(s) for s in request.args.get('sections').split(',') if ( request.args.get('sections')) ]
-	restrictParamsList= request.args.get('restrict').split(',') if ( request.args.get('restrict')) else []
-	excludeParamsList= request.args.get('exclude').split(',') if ( request.args.get('exclude')) else []
+	sections = []
+	#if(request.args.get('sections') and len(request.args.get('sections') > 0 )):
+	#	print("Have sections: " + request.args.get('sections'))
+	#	sections = [int(s) for s in request.args.get('sections').split(',')]
+	sections = [int(s) for s in request.args.get('sections').split(',')] if (request.args.get('sections')) else []
+	restrictParamsList= request.args.get('restrict').split(',') if (request.args.get('restrict')) else []
+	excludeParamsList= request.args.get('exclude').split(',') if (request.args.get('exclude')) else []
 	pos = request.args.get('pos')
 	beta = request.args.get('beta') if request.args.get('beta') else True
 	common = True if request.args.get('common') else False
@@ -381,7 +426,7 @@ def lexemesRoute():
 	#print("Gloss: " + str(gloss))
 	#print("calling getLexemes with common = " + str(common))
 	returnObject= getLexemes(sections=sections, restrict=list(restrictedIds), 
-						  exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper, beta=beta, common=common)
+						  exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper, beta=beta, common=common,db=db)
 	#print("getLexemes about to return with common value of: [" + ",".join(returnObject['common']) + "]")
 	return returnObject
 

@@ -15,7 +15,7 @@ def test_getLex():
     lexes = app.getLexemes(sections=[623694])
     assert lexes['totalLexemes'] == 2096
     assert len(list(lexes['lexemes'])) == 2096
-    print("hello")
+    #print("hello")
 
 def test_getCommonLexes():
     # Gen 1 and 2
