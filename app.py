@@ -16,6 +16,16 @@ app = Flask(__name__)
 app.config['SERVER_NAME'] = "localhost.localdomain:5000"
 CORS(app)
 
+def getAPI(db='lxx'):
+	if (db=='lxx'):
+		api=LXX.api
+		api.lex =lambda i : api.F.lex_utf8.v(i)
+	elif (db=='bhs'):
+		api=BHS.api
+		api.lex= lambda i : api.F.voc_lex_utf8.v(i) if api.F.voc_lex_utf8.v(i) else api.F.lex_utf8.v(i)
+		#api.lex =lambda i : api.F.lex_utf8.v(i)
+	return api
+
 posDict={
 0:  {'abbrev': 'n', 'desc':  'noun',},
 1:  {'abbrev': 'v', 'desc':  'verb',},
@@ -227,14 +237,8 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	#print("getLexemes with sections = " + ",".join([str(s) for s in sections]) +"; common: " + str(common))
 	#print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 	#print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
-
-	if (db=='lxx'):
-		api = LXX.api 
-		lex=api.F.lex_utf8.v
-	elif (db=='bhs'):
-		api=BHS.api
-		lex= lambda i : api.F.g_lex_utf8.v(i) if api.F.g_lex_utf8.v(i) else api.F.lex_utf8.v(i)
- 		
+	api=getAPI(db)
+	
 	
 	lexemes = {}
 	sectionsLexemes = {}
@@ -298,36 +302,36 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 			if(includeWord(wordid)):	
 				
 				totalInstances += 1
-				if (not lex(wordid) in lexemes.keys()):
+				if (not api.lex(wordid) in lexemes.keys()):
 					totalLexemes +=1
-					lexemes[lex(wordid)] = {'count': 1, 'id': wordid}
+					lexemes[api.lex(wordid)] = {'count': 1, 'id': wordid}
 					# track which of the give sections this word is in:
 					if (common):
-						sectionsLexemes[lex(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
+						sectionsLexemes[api.lex(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
 
 					if (totalCount):
 						if (db=='lxx'):
-							lexemes[lex(wordid)]['total'] = int(api.F.freq_lemma.v(wordid));
+							lexemes[api.lex(wordid)]['total'] = int(api.F.freq_lemma.v(wordid));
 						elif(db=='bhs'):
-							lexemes[lex(wordid)]['total'] = int(api.F.freq_lex.v(wordid));
+							lexemes[api.lex(wordid)]['total'] = int(api.F.freq_lex.v(wordid));
 					if (gloss):
-						lexemes[lex(wordid)]['gloss'] = api.F.gloss.v(wordid)
+						lexemes[api.lex(wordid)]['gloss'] = api.F.gloss.v(wordid)
 					if (beta):
-						lexemes[lex(wordid)]['beta'] = api.F.lex.v(wordid)
+						lexemes[api.lex(wordid)]['beta'] = api.F.lex.v(wordid)
 					if (pos):
-						lexemes[lex(wordid)]['pos'] = api.F.sp.v(wordid)
+						lexemes[api.lex(wordid)]['pos'] = api.F.sp.v(wordid)
 						#print("Got pos!")
-						if ((db == 'lxx' and lexemes[lex(wordid)]['pos'] == 'noun' and lex(wordid)[0].isupper())
-		  					or (db == 'bhs' and lexemes[lex(wordid)]['pos']=='nmpr')):
+						if ((db == 'lxx' and lexemes[api.lex(wordid)]['pos'] == 'noun' and api.lex(wordid)[0].isupper())
+		  					or (db == 'bhs' and lexemes[api.lex(wordid)]['pos']=='nmpr')):
 							if (checkProper and db=='lxx'):
-								lexemes[lex(wordid)]['pos'] = 'proper noun or name'
+								lexemes[api.lex(wordid)]['pos'] = 'proper noun or name'
 							else:
-								lexemes[lex(wordid)]['proper'] = True
+								lexemes[api.lex(wordid)]['proper'] = True
 					
 				else:
-					lexemes[lex(wordid)]['count'] += 1
+					lexemes[api.lex(wordid)]['count'] += 1
 					if (common):
-						sectionsLexemes[lex(wordid)].update([int(s) for s in (set(api.L.u(wordid)) & set(sections))])
+						sectionsLexemes[api.lex(wordid)].update([int(s) for s in (set(api.L.u(wordid)) & set(sections))])
 		
 		id=int(nodeid)
 		if (api.L.d(id) and not recursive):
@@ -367,23 +371,18 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 
 def getChaptersDict(book, db='lxx'):
 	print("getChapters(" + str(book) + "," + db +")")
-	api = LXX.api
-	if (db == 'bhs'):
-		api = BHS.api
+	api = getAPI(db)
 	return dict([(api.F.chapter.v(c), c) for c in api.L.d(book) if api.F.otype.v(c)=='chapter'])
 	
 def getBooksDict(db='lxx'):
-	api=LXX.api
-	#if (db=='lxx'):
-	#	api = LXX.api 
-	if (db=='bhs'):
-		print("got BHS!")
-		api=BHS.api
+	api=getAPI(db)
 	return dict([(b, api.F.book.v(b)) for b in api.N.walk() if api.F.otype.v(b) == 'book'])
 
+@app.route("/<string:db>/wordcloud")
 @app.route("/wordcloud")
-def wordCloudRoute():
-	theLexemesResp=lexemesRoute()
+def wordCloudRoute(db='lxx'):
+	
+	theLexemesResp=lexemesRoute(db)
 	theLexemes=theLexemesResp['lexemes']
 	response = ''
 
@@ -502,18 +501,20 @@ def chaptersRoute(book, db='lxx'):
 def booksRoute(db='lxx'):
 	return getBooksDict(db)
 
+@app.route("/<string:db>/getrefs/<int:id>")
 @app.route("/getrefs/<int:id>")
-def getrefsRoute(id):
-	return getLexRefs(id)
+def getrefsRoute(id, db='lxx'):
+	return getLexRefs(id, db)
 
 # returns refs as {'refs': <string array>, 'nodes': <int array of verses>}
-def getLexRefs(id):
+def getLexRefs(id,db='lxx'):
+	api=getAPI(db)
 	# optionally limits to instances within any of the selected sections, exluding all others:
 	id=int(id)
 	sections = [int(s) for s in request.args.get('sections').split(',')] if request.args.get('sections') else []
 	print("getrefs: sections = [" + ",".join([str(s) for s in sections])+"]")
-	if(F.otype.v(id) == 'word'):
-		lex=F.lex_utf8.v(id)
+	if(api.F.otype.v(id) == 'word'):
+		lex=api.lex(id)
 		rNodes = {}
 		queryDetail = 'verse'
 
@@ -524,9 +525,9 @@ def getLexRefs(id):
 				queryDetail = 'chapter'
 
 		#refs = {}
-		for n in N.walk():
-			if (F.otype.v(n) == 'word' and  F.lex_utf8.v(n)==lex and (len(sections) == 0 or (len(set(L.u(n)) & set(sections)) > 0) )):
-				sectionTuple= T.sectionTuple(n)
+		for n in api.N.walk():
+			if (api.F.otype.v(n) == 'word' and (len(sections) == 0 or (len(set(api.L.u(n)) & set(sections)) > 0) )):
+				sectionTuple= api.T.sectionTuple(n)
 				if (queryDetail == 'book'):
 					sectionNode = sectionTuple[0]
 				elif (queryDetail == 'chapter'):
@@ -535,7 +536,7 @@ def getLexRefs(id):
 					sectionNode = sectionTuple[2]
 
 				#rNodes.add(sectionNode) # gets node of containing verse
-				refTuple = T.sectionFromNode(n) # gets tuple of containing verse
+				refTuple = api.T.sectionFromNode(n) # gets tuple of containing verse
 				if (queryDetail == 'book'):
 					refString = refTuple[0]
 				elif (queryDetail == 'chapter'):
@@ -548,30 +549,35 @@ def getLexRefs(id):
 	else:
 		return ''
 
-def getText(nodeId):
+def getText(nodeId,db='lxx'):
+	api=getAPI(db)
 	try:
-		return T.text(int(nodeId))
+		return api.T.text(int(nodeId))
 	except:
 		return ''
 
-def getRef(nodeId):
+def getRef(nodeId, db='lxx'):
+	api=getAPI(db)
 	try:
-		return " ".join(map(str, T.sectionFromNode(int(nodeId))))
+		return " ".join(map(str, api.T.sectionFromNode(int(nodeId))))
 	except:
 		return ''
 
 
+@app.route("/<string:db>/text/<int:id>")
 @app.route("/text/<int:id>")
-def textRoute(id):
-	return {'section': getRef(id), 'text': getText(id), 'id':int(id), 'type': F.otype.v(int(id))}
+def textRoute(id,db='lxx'):
+	api=getAPI(db)
+	return {'section': getRef(id,db), 'text': getText(id,db), 'id':int(id), 'type': api.F.otype.v(int(id))}
 
 @app.route("/texts/")
-def textsRoute():
+@app.route("/<string:db>/texts/")
+def textsRoute(db='lxx'):
 	texts = []
 	ids=request.args.get("sections").split(",")
 	try:
 		for id in ids:
-			texts.append({'section':getRef(id), 'text':getText(id), 'id': int(id)})
+			texts.append({'section':getRef(id,db), 'text':getText(id,db), 'id': int(id)})
 	except:
 		texts=[]
 	return texts
@@ -579,8 +585,11 @@ def textsRoute():
 	
 
 
-def sectionFromNode(node):
-	section= T.sectionFromNode(node)
+def sectionFromNode(node,db='lxx'):
+	api=LXX.api
+	if (db=='bhs'):
+		api=BHS.api
+	section= api.T.sectionFromNode(node)
 	string = ''
 	if (len(section) == 3):
 		string = str(section[0]) + " " + str(section[1]) + ":" + str(section[2])
