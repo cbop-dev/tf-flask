@@ -73,12 +73,12 @@ tfLxxBooksDict = {
 	623699: {'abbrev': "Josh", 'syn': ['Josh', 'Joshua']},
 	623700: {'abbrev': "Judg", 'syn': ['Judg', 'Judges', 'Jdg', 'Jdgs', "Judgs"]},
 	623701: {'abbrev': "Ruth", 'syn': ['Ruth', 'Ruth']},
-	623702: {'abbrev': "1Sam", 'syn': ['1 Sam', '1 Samuel', 'I Samuel','1 Sa', '1 Sam','I Sa', 'I Sam','1 Kgdms', '1 Kingdoms','I Kingdoms','I Kgdms', '2 Kgdms', '2 Kingdoms','II Kingdoms','II Kgdms']},
-	623703: {'abbrev': "2Sam", 'syn': ['2 Sam', '2 Samuel', 'II Samuel','2 Sa', '2 Sam','II Sa', 'II Sam']},
+	623702: {'abbrev': "1Sam", 'syn': ['1 Sam', '1 Samuel', 'I Samuel','1 Sa', '1 Sam','I Sa', 'I Sam','1 Kgdms', '1 Kingdoms','I Kingdoms','I Kgdms',]},
+	623703: {'abbrev': "2Sam", 'syn': ['2 Sam', '2 Samuel', 'II Samuel','2 Sa', '2 Sam','II Sa', 'II Sam','2 Kgdms', '2 Kingdoms','II Kingdoms','II Kgdms', '2 Kgdms', '2 Kingdoms','II Kingdoms','II Kgdms']},
 	623704: {'abbrev': "1Kgs", 'syn': ['1 Kgs', '1 Kings', 'I Kings','1 Kg', 'I Kg', '3 Kgdms', '3 Kingdoms','III Kingdoms','III Kgdms']},
 	623705: {'abbrev': "2Kgs", 'syn': ['2 Kgs', '2 Kings', 'II Kings','2 Kg', 'II Kg', '4 Kgdms', '4 Kingdoms','IV Kingdoms','IV Kgdms']},
-	623706: {'abbrev': "1Chr", 'syn': ['1 Chr', '1 Chronicles', '1 Chron', '1 Ch','I Chronicales', 'I Chron', 'I Ch','I Chr']},
-	623707: {'abbrev': "2Chr", 'syn': ['2 Chr', '2 Chronicles', '2 Chron', '2 Ch', 'II Chronicales', 'II Chron', 'II Ch','II Chr']},
+	623706: {'abbrev': "1Chr", 'syn': ['1 Chr', '1 Chronicles', '1 Chron', '1 Ch','I Chronicles', 'I Chron', 'I Ch','I Chr']},
+	623707: {'abbrev': "2Chr", 'syn': ['2 Chr', '2 Chronicles', '2 Chron', '2 Ch', 'II Chronicles', 'II Chron', 'II Ch','II Chr']},
 	623708: {'abbrev': "1Esdr", 'syn': ['Ezra', 'Ezra', '1 Esdras', 'I Esdras', '1 Esdr', 'I Esdr']},
 	623709: {'abbrev': "2Esdr", 'syn': ['Neh', 'Nehemiah',  '2 Esdras', 'II Esdras', '2 Esdr', 'II Esdr']},
 	623710: {'abbrev': "Esth", 'syn': ['Esth', 'Esther', 'Est']},
@@ -122,6 +122,49 @@ tfLxxBooksDict = {
 	623748: {'abbrev': "DanTh", 'syn': ['Dan', 'Daniel','DanTh', 'DanielTh','Dan Th', 'Daniel Th']},
 	623749: {'abbrev': "Sus", 'syn': ['Susanna', 'SusOG', 'Sus OG', 'SusannaOG','Susanna OG']},
 	623750: {'abbrev': "SusTh", 'syn': ['Susanna Th','SusannaTh']},
+}
+
+
+tfBhsBooksDict = {
+426591:{"abbrev":"Gen","syn":["Genesis",'Gen','Ge']},
+426592:{"abbrev":"Exod","syn":["Exodus",'Exod','Exodus']},
+426593:{"abbrev":"Lev","syn":["Leviticus",'Lev','Leviticus']},
+426594:{"abbrev":"Num","syn":["Numeri",'Num','Numbers']},
+426595:{"abbrev":"Deut","syn":["Deuteronomium",'Deut','Deuteronomy','Dt','Deu']},
+426596:{"abbrev":"Josh","syn":["Josua",'Josh','Joshua',"Josua"]},
+426597:{"abbrev":"Judg","syn":["Judices",'Judg','Judges','Jdg','Jdgs',"Judgs"]},
+426598:{"abbrev":"1Sam","syn":["Samuel_I",'1Sam','1Samuel','ISamuel','1Sa','1Sam','ISa','ISam']},
+426599:{"abbrev":"2Sam","syn":["Samuel_II",'2Sam','2Samuel','IISamuel','2Sa','2Sam','IISa','IISam']},
+426600:{"abbrev":"1Kgs","syn":["Reges_I",'1Kgs','1Kings','IKings','1Kg','IKg']},
+426601:{"abbrev":"2Kgs","syn":["Reges_II",'2Kgs','2Kings','IIKings','2Kg','IIKg']},
+426602:{"abbrev":"Isa","syn":["Jesaia",'Isa','Isaiah','Is',"Jesaia"]},
+426603:{"abbrev":"Jer","syn":["Jeremia",'Jer','Jeremiah',"Jeremia","Jerem","Jere"]},
+426604:{"abbrev":"Ezek","syn":["Ezechiel",'Ezek','Ezekiel',"Ezechiel"]},
+426605:{"abbrev":"Hos","syn":["Hosea",'Hos']},
+426606:{"abbrev":"Joel","syn":["Joel"]},
+426607:{"abbrev":"Amos","syn":["Amos","Am"]},
+426608:{"abbrev":"Obad","syn":["Obadia",'Obad','Obadiah','Ob',"Obed"]},
+426609:{"abbrev":"Jonah","syn":["Jona",'Jonah','Jon']},
+426610:{"abbrev":"Mic","syn":["Micha",'Mic','Micah',"Micha","Mica"]},
+426611:{"abbrev":"Nah","syn":["Nahum",'Nah']},
+426612:{"abbrev":"Hab","syn":["Habakuk",'Hab','Habakkuk']},
+426613:{"abbrev":"Zeph","syn":["Zephania",'Zeph','Zephaniah']},
+426614:{"abbrev":"Hag","syn":["Haggai",'Hag','Haggai']},
+426615:{"abbrev":"Zech","syn":["Sacharia",'Zech','Zechariah']},
+426616:{"abbrev":"Mal","syn":["Maleachi",'Mal','Malachi']},
+426617:{"abbrev":"Ps","syn":["Psalmi",'Ps(s)','Psalms','Psa']},
+426618:{"abbrev":"Job","syn":["Iob",'Job','Jb']},
+426619:{"abbrev":"Prov","syn":["Proverbia",'Prov','Proverbs','Pr']},
+426620:{"abbrev":"Ruth","syn":["Ruth","Ru"]},
+426621:{"abbrev":"Cant","syn":["Canticum",'Song','SongofSongs','SongofSolomon','Canticles','Cant']},
+426622:{"abbrev":"Qoh","syn":["Ecclesiastes",'Eccl','Ecclesiastes','Qoheleth','Qoh',"Eccl"]},
+426623:{"abbrev":"Lam","syn":["Threni",'Lam','Lamentations']},
+426624:{"abbrev":"Esth","syn":["Esther",'Esth','Est']},
+426625:{"abbrev":"Dan","syn":["Daniel","Dan"]},
+426626:{"abbrev":"Ezra","syn":["Esra","Ezr"]},
+426627:{"abbrev":"Neh","syn":["Nehemia",'Nehemiah',"Neh"]},
+426628:{"abbrev":"1Chr","syn":["Chronica_I",'1Chr','1Chronicles','1Chron','1Ch','IChronicles','IChron','ICh','IChr']},
+426629:{"abbrev":"2Chr","syn":["Chronica_II",'2Chr','2Chronicles','2Chron','2Ch','IIChronicles','IIChron','IICh','IIChr']},
 }
 
 @app.route("/<string:db>/lex/common/")
@@ -187,8 +230,11 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 
 	if (db=='lxx'):
 		api = LXX.api 
+		lex=api.F.lex_utf8.v
 	elif (db=='bhs'):
 		api=BHS.api
+		lex= lambda i : api.F.g_lex_utf8.v(i) if api.F.g_lex_utf8.v(i) else api.F.lex_utf8.v(i)
+ 		
 	
 	lexemes = {}
 	sectionsLexemes = {}
@@ -252,36 +298,36 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 			if(includeWord(wordid)):	
 				
 				totalInstances += 1
-				if (not api.F.lex_utf8.v(wordid) in lexemes.keys()):
+				if (not lex(wordid) in lexemes.keys()):
 					totalLexemes +=1
-					lexemes[api.F.lex_utf8.v(wordid)] = {'count': 1, 'id': wordid}
+					lexemes[lex(wordid)] = {'count': 1, 'id': wordid}
 					# track which of the give sections this word is in:
 					if (common):
-						sectionsLexemes[api.F.lex_utf8.v(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
+						sectionsLexemes[lex(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
 
 					if (totalCount):
 						if (db=='lxx'):
-							lexemes[api.F.lex_utf8.v(wordid)]['total'] = int(api.F.freq_lemma.v(wordid));
+							lexemes[lex(wordid)]['total'] = int(api.F.freq_lemma.v(wordid));
 						elif(db=='bhs'):
-							lexemes[api.F.lex_utf8.v(wordid)]['total'] = int(api.F.freq_lex.v(wordid));
+							lexemes[lex(wordid)]['total'] = int(api.F.freq_lex.v(wordid));
 					if (gloss):
-						lexemes[api.F.lex_utf8.v(wordid)]['gloss'] = api.F.gloss.v(wordid)
+						lexemes[lex(wordid)]['gloss'] = api.F.gloss.v(wordid)
 					if (beta):
-						lexemes[api.F.lex_utf8.v(wordid)]['beta'] = api.F.lex.v(wordid)
+						lexemes[lex(wordid)]['beta'] = api.F.lex.v(wordid)
 					if (pos):
-						lexemes[api.F.lex_utf8.v(wordid)]['pos'] = api.F.sp.v(wordid)
+						lexemes[lex(wordid)]['pos'] = api.F.sp.v(wordid)
 						#print("Got pos!")
-						if ((db == 'lxx' and lexemes[api.F.lex_utf8.v(wordid)]['pos'] == 'noun' and api.F.lex_utf8.v(wordid)[0].isupper())
-		  					or (db == 'bhs' and lexemes[api.F.lex_utf8.v(wordid)]['pos']=='nmpr')):
+						if ((db == 'lxx' and lexemes[lex(wordid)]['pos'] == 'noun' and lex(wordid)[0].isupper())
+		  					or (db == 'bhs' and lexemes[lex(wordid)]['pos']=='nmpr')):
 							if (checkProper and db=='lxx'):
-								lexemes[api.F.lex_utf8.v(wordid)]['pos'] = 'proper noun or name'
+								lexemes[lex(wordid)]['pos'] = 'proper noun or name'
 							else:
-								lexemes[api.F.lex_utf8.v(wordid)]['proper'] = True
+								lexemes[lex(wordid)]['proper'] = True
 					
 				else:
-					lexemes[api.F.lex_utf8.v(wordid)]['count'] += 1
+					lexemes[lex(wordid)]['count'] += 1
 					if (common):
-						sectionsLexemes[api.F.lex_utf8.v(wordid)].update([int(s) for s in (set(api.L.u(wordid)) & set(sections))])
+						sectionsLexemes[lex(wordid)].update([int(s) for s in (set(api.L.u(wordid)) & set(sections))])
 		
 		id=int(nodeid)
 		if (api.L.d(id) and not recursive):
@@ -319,11 +365,21 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	return  theResponseObj
 
 
-def getChaptersDict(book):
-	return dict([(F.chapter.v(c), c) for c in L.d(book) if F.otype.v(c)=='chapter'])
+def getChaptersDict(book, db='lxx'):
+	print("getChapters(" + str(book) + "," + db +")")
+	api = LXX.api
+	if (db == 'bhs'):
+		api = BHS.api
+	return dict([(api.F.chapter.v(c), c) for c in api.L.d(book) if api.F.otype.v(c)=='chapter'])
 	
-def getBooksDict():
-	return dict([(b, F.book.v(b)) for b in N.walk() if F.otype.v(b) == 'book'])
+def getBooksDict(db='lxx'):
+	api=LXX.api
+	#if (db=='lxx'):
+	#	api = LXX.api 
+	if (db=='bhs'):
+		print("got BHS!")
+		api=BHS.api
+	return dict([(b, api.F.book.v(b)) for b in api.N.walk() if api.F.otype.v(b) == 'book'])
 
 @app.route("/wordcloud")
 def wordCloudRoute():
@@ -412,17 +468,9 @@ def lexemesRoute(db='lxx'):
 		if (abbrev in excludeParamsList):
 			excludedIds.update(posGroups[abbrev])
 	print("excludedIds: " + str(excludedIds))
-	#if ('CONT' in restrict):
-		#restrict.remove('CONT')
-		#restrict = restrict + ['0','1','2','3','4','5']
-	#if ('CONTENT' in restrict):
-		#restrict.remove('CONTENT')
-		#restrict = restrict + ['0','1','2','3','4','5']
-		#print("restrict: " + str(restrict))
-	
-	#restrictList = list()
-	min= request.args.get('min') if ( request.args.get('min')) else 1
-	gloss= True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
+
+	min = request.args.get('min') if ( request.args.get('min')) else 1
+	gloss = True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
 	#print("Gloss: " + str(gloss))
 	#print("calling getLexemes with common = " + str(common))
 	returnObject= getLexemes(sections=sections, restrict=list(restrictedIds), 
@@ -431,19 +479,28 @@ def lexemesRoute(db='lxx'):
 	return returnObject
 
 @app.route("/chapters/")
-def allChaptersRoute():
+@app.route("/<string:db>/chapters/")
+def allChaptersRoute(db='lxx'):
 	booksChaps={}
-	for bid in tfLxxBooksDict.keys():
-		booksChaps[bid]=getChaptersDict(bid)
+	booksDict = tfLxxBooksDict
+    
+	if (db == 'bhs'):
+		booksDict = tfBhsBooksDict
+	
+	for bid in booksDict.keys():
+			booksChaps[bid]=getChaptersDict(bid, db)
+    
 	return booksChaps
 
+@app.route("/<string:db>/chapters/<int:book>")
 @app.route("/chapters/<int:book>")
-def chaptersRoute(book):
-	return getChaptersDict(book)
+def chaptersRoute(book, db='lxx'):
+	return getChaptersDict(book, db)
 
+@app.route("/<string:db>/books")
 @app.route("/books")
-def booksRoute():
-	return getBooksDict()
+def booksRoute(db='lxx'):
+	return getBooksDict(db)
 
 @app.route("/getrefs/<int:id>")
 def getrefsRoute(id):
