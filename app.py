@@ -1,7 +1,7 @@
 import sys
-from flask import Flask, request, Response
 from tf.fabric import Fabric
 from tf.app import use
+from flask import Flask, request, Response
 from wordcloud import WordCloud, STOPWORDS
 from pathlib import Path
 from flask_cors import CORS
@@ -25,6 +25,13 @@ def getAPI(db='lxx'):
 		api.lex= lambda i : api.F.voc_lex_utf8.v(i) if api.F.voc_lex_utf8.v(i) else api.F.lex_utf8.v(i)
 		#api.lex =lambda i : api.F.lex_utf8.v(i)
 	return api
+
+def getDicts(db='lxx'):
+	if (db=='lxx'):
+		return {'dict': posDict, 'groups': posGroups}
+	elif(db=='bhs'):
+		return {'dict': bhsPosDict, 'groups': bhsPosGroups}
+
 
 posDict={
 0:  {'abbrev': 'n', 'desc':  'noun',},
@@ -59,7 +66,7 @@ posDict={
 posGroups={
 	"CONT":[0,1,2,3,4,5],
 	"CONTENT":[0,1,2,3,4,5],
-	"SYNT":list(range(17,26)),
+	"SYNT":list(range(17,26)),#NB: excludes last item
 	"SYNTAX":list(range(17,26)),
 	"PREP":[16,23,24],
 	"PREPOSITIONS":[16,23,24],
@@ -71,6 +78,41 @@ posGroups={
 	"PRONOUNS":list(range(6,14)),
 	"PRONOUN":list(range(6,14)),
 	
+}
+
+bhsPosDict ={
+0: {'abbrev': 'subs', 'desc':'noun, substantive'},
+1: {'abbrev': 'nmpr', 'desc':'proper noun'},
+2: {'abbrev': 'verb', 'desc':'verb'},
+3: {'abbrev': 'adjv', 'desc':'adjective'},
+4: {'abbrev': 'advb', 'desc':'adverb'},
+5: {'abbrev': 'intj', 'desc':'interjection'},
+6: {'abbrev': 'prps', 'desc':'personal pronoun'},
+7: {'abbrev': 'prep', 'desc':'preposition'},
+8: {'abbrev': 'prde', 'desc':'demonstrative pronoun'},
+9: {'abbrev': 'inrg', 'desc':'interogative'},
+10: {'abbrev': 'conj', 'desc':'conjunction'},
+11: {'abbrev': 'nega', 'desc':'negative particle'},
+12: {'abbrev': 'prin', 'desc':'interogative pronoun'},
+13: {'abbrev': 'art', 'desc':'article'},
+
+	
+}
+bhsPosGroups={
+"CONT":[0,1,2,3,4],
+	"CONTENT":[0,1,2,3,4],
+	"SYNT":[10,11],
+	"SYNTAX":[10,11],
+	"PREP":[7],
+	"PREPOSITIONS":[7],
+	"PREPOSITION":[7],
+	"PART":[5,9,11,13],#I'm counting the article as a particle
+	"PARTICLES":[5,9,11,13],
+	"PARTICLE":[5,9,11,13],
+	"PRON":[6,8,12],
+	"PRONOUNS":[6,8,12],
+	"PRONOUN":[6,8,12],
+
 }
 
 #indexed by the tf node ids, with various synonyms for searching/looking-up.
@@ -185,27 +227,29 @@ def getCommonRoute(db='lxx'):
 @app.route("/<string:db>/lex/<int:lexid>")
 @app.route("/lex/<int:lexid>")
 def getLexInfo(lexid,db='lxx'):
+	api=getAPI(db)
 	lexid=int(lexid)
 	if (db == 'lxx'):
-		if (lexid > 0 and F.otype.v(lexid) == 'word'):
+		if (lexid > 0 and api.F.otype.v(lexid) == 'word'):
 			theLexObj = {'id': lexid}
-			theLexObj['total'] = F.freq_lemma.v(lexid)
-			theLexObj['gloss'] = F.gloss.v(lexid)
+			theLexObj['total'] = api.F.freq_lemma.v(lexid)
+			theLexObj['gloss'] = api.F.gloss.v(lexid)
 			
-			theLexObj['beta']=F.lex.v(lexid)
-			theLexObj['greek'] = F.lex_utf8.v(lexid)
-			theLexObj['pos'] = F.sp.v(lexid) if theLexObj['greek'][0].islower() else 'proper noun or name'
+			theLexObj['beta']=api.F.lex.v(lexid)
+			theLexObj['greek'] = api.F.lex_utf8.v(lexid)
+			theLexObj['pos'] = api.F.sp.v(lexid) if theLexObj['greek'][0].islower() else 'proper noun or name'
 			
 			return theLexObj
 	elif (db == 'bhs'):
-		bhsF=BHS.api.F
-		if (lexid > 0 and bhsF.otype.v(lexid) == 'word'):
+		#bhsF=BHS.api.F
+		if (lexid > 0 and api.otype.v(lexid) == 'word'):
 			theLexObj = {'id': lexid}
-			theLexObj['total'] = bhsF.freq_lex.v(lexid)
-			theLexObj['gloss'] = bhsF.gloss.v(lexid)
-			theLexObj['beta']=bhsF.lex.v(lexid)
-			theLexObj['hebrew'] = bhsF.lex_utf8.v(lexid)
-			theLexObj['pos'] = bhsF.sp.v(lexid)
+			theLexObj['total'] = api.freq_lex.v(lexid)
+			theLexObj['gloss'] = api.gloss.v(lexid)
+			theLexObj['beta']=api.lex0.v(lexid)
+			theLexObj['hebrew'] = api.lex(lexid)
+			theLexObj['hebrew_plain'] = api.lex_utf8.v(lexid)
+			theLexObj['pos'] = api.sp.v(lexid)
 			return theLexObj
 
 	else:
@@ -230,7 +274,7 @@ def getLexCount(lexid, db='lxx'):
 		return count
 	
 # returns dict of lexemes and frequencies:
-def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all',common=False, db='lxx'):
+def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all',common=False, db='lxx',plain=False):
 	#print("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
@@ -238,7 +282,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	#print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 	#print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
 	api=getAPI(db)
-	
+	theDicts=getDicts(db)
 	
 	lexemes = {}
 	sectionsLexemes = {}
@@ -246,8 +290,12 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	totalInstances = 0
 	totalLexemes = 0
 	totalWordsInSections = 0
-	restrictStrings=[v['desc'] for (k,v) in posDict.items() if k in restrict]
-	excludeStrings=[v['desc'] for (k,v) in posDict.items() if k in exclude]
+	if (db=='bhs'):
+		restrictStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in restrict]
+		excludeStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in exclude]
+	else:
+		restrictStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in restrict]
+		excludeStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in exclude]
 	#print("restrictStrings: " + str(restrictStrings))
 	restricted = True if len(restrictStrings) > 0 else False
 	excluded  = True if len(excludeStrings) > 0 else False
@@ -261,6 +309,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 		nonlocal excluded
 		nonlocal gloss
 		nonlocal pos
+		nonlocal plain
 		nonlocal restrictStrings
 		nonlocal restricted
 		nonlocal totalCount
@@ -295,6 +344,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 			nonlocal totalLexemes
 			nonlocal totalWordsInSections
 			nonlocal beta
+			nonlocal plain
 			nonlocal gloss
 			nonlocal totalCount
 			nonlocal pos
@@ -327,7 +377,8 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 								lexemes[api.lex(wordid)]['pos'] = 'proper noun or name'
 							else:
 								lexemes[api.lex(wordid)]['proper'] = True
-					
+					if (plain and db=='bhs'):
+						lexemes[api.lex(wordid)]['plain'] = api.F.lex_utf8.v(wordid)
 				else:
 					lexemes[api.lex(wordid)]['count'] += 1
 					if (common):
@@ -353,7 +404,10 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	else:
 		for o in api.N.walk():
 			addLexes(o)
-	#print(lexemes)			
+	#print(lexemes)		
+	# sort lexemes?
+	# 
+	# 	
 	theResponseObj = {
 		'totalInstances': totalInstances,#i.e., number of words in this section
 		'totalLexemes': totalLexemes,
@@ -441,6 +495,7 @@ def genWordCloudSVG(freqDataDict, title='',maxWords=200):
 @app.route("/<string:db>/lex")
 @app.route("/lex")
 def lexemesRoute(db='lxx'):
+	theDicts=getDicts(db)
 	checkProper =  True if request.args.get('proper') != 'false' else False
 	#print("lex route: checkProper = " + str(checkProper))
 	sections = []
@@ -452,20 +507,22 @@ def lexemesRoute(db='lxx'):
 	excludeParamsList= request.args.get('exclude').split(',') if (request.args.get('exclude')) else []
 	pos = request.args.get('pos')
 	beta = request.args.get('beta') if request.args.get('beta') else True
+	plain = request.args.get('plain') if request.args.get('plain') else False
 	common = True if request.args.get('common') else False
 	#if (common):
 #		print("using common flag...")
 	restrictedIds=set([int(x) for x in restrictParamsList if x.isdigit()])
-	for (abbrev,iArray) in posGroups.items():
+
+	for (abbrev,iArray) in theDicts['groups'].items():
 		if (abbrev in restrictParamsList):
-			restrictedIds.update(posGroups[abbrev])
+			restrictedIds.update(theDicts['groups'][abbrev])
 			#restrictedIds.remove(abbrev)
 	print("restrictedIds: " + str(restrictedIds))
 
 	excludedIds=set([int(x) for x in excludeParamsList if x.isdigit()])
-	for (abbrev,iArray) in posGroups.items():
+	for (abbrev,iArray) in theDicts['groups'].items():
 		if (abbrev in excludeParamsList):
-			excludedIds.update(posGroups[abbrev])
+			excludedIds.update(theDicts['groups'][abbrev])
 	print("excludedIds: " + str(excludedIds))
 
 	min = request.args.get('min') if ( request.args.get('min')) else 1
@@ -473,7 +530,7 @@ def lexemesRoute(db='lxx'):
 	#print("Gloss: " + str(gloss))
 	#print("calling getLexemes with common = " + str(common))
 	returnObject= getLexemes(sections=sections, restrict=list(restrictedIds), 
-						  exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper, beta=beta, common=common,db=db)
+						  exclude=list(excludedIds), min=min, gloss=gloss,pos=pos,checkProper=checkProper, beta=beta, common=common,db=db,plain=plain)
 	#print("getLexemes about to return with common value of: [" + ",".join(returnObject['common']) + "]")
 	return returnObject
 
@@ -506,7 +563,7 @@ def booksRoute(db='lxx'):
 def getrefsRoute(id, db='lxx'):
 	return getLexRefs(id, db)
 
-# returns refs as {'refs': <string array>, 'nodes': <int array of verses>}
+# returns refs as {'refs': <string array>, 'nodes': <int array of verses>, 'bookCounts': <dict of booksids->count>, 'total', <total instances in BHS>}
 def getLexRefs(id,db='lxx'):
 	api=getAPI(db)
 	# optionally limits to instances within any of the selected sections, exluding all others:
@@ -516,8 +573,9 @@ def getLexRefs(id,db='lxx'):
 	if(api.F.otype.v(id) == 'word'):
 		lex=api.lex(id)
 		rNodes = {}
+		bookCounts = {}
 		queryDetail = 'verse'
-
+		verseCounts={}
 		if (request.args.get("detail")):
 			if (request.args.get("detail") == "book"):
 				queryDetail = 'book'
@@ -526,7 +584,7 @@ def getLexRefs(id,db='lxx'):
 
 		#refs = {}
 		for n in api.N.walk():
-			if (api.F.otype.v(n) == 'word' and (len(sections) == 0 or (len(set(api.L.u(n)) & set(sections)) > 0) )):
+			if (api.F.otype.v(n) == 'word' and api.lex(n) == lex and (len(sections) == 0 or (len(set(api.L.u(n)) & set(sections)) > 0) )):
 				sectionTuple= api.T.sectionTuple(n)
 				if (queryDetail == 'book'):
 					sectionNode = sectionTuple[0]
@@ -544,8 +602,19 @@ def getLexRefs(id,db='lxx'):
 				else:
 					refString = refTuple[0] + " " + ":".join(map(str,refTuple[1:]))
 				#refs.add(refString)
-				rNodes[sectionNode]=refString
-		return {'refs': list(rNodes.values()), 'nodes': list(rNodes.keys())}
+				bookid=api.L.u(n)[-1]
+				if bookid not in bookCounts:
+					bookCounts[bookid]=1
+				else:
+					bookCounts[bookid] +=1
+				if sectionNode not in rNodes:
+					rNodes[sectionNode]=refString
+					verseCounts[sectionNode]=1
+				else:
+					verseCounts[sectionNode] +=1
+					#rNodes[sectionNode]=refString+"(" + str(verseCounts[sectionNode]) + ")"
+
+		return {'refs': list(rNodes.values()), 'nodes': list(rNodes.keys()), 'bookcounts': dict(bookCounts), 'total': sum(bookCounts.values())}
 	else:
 		return ''
 
