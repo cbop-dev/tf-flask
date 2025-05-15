@@ -2,4 +2,4 @@ wordcloud
 flask
 flask-cors
 gunicorn 
-text-fabric
+text-fabric==12.6.2

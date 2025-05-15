@@ -1,5 +1,5 @@
 import sys
-from tf.fabric import Fabric
+#from tf.fabric import Fabric
 from tf.app import use
 from flask import Flask, request, Response
 from wordcloud import WordCloud, STOPWORDS
