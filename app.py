@@ -5,6 +5,11 @@ from flask import Flask, request, Response
 from wordcloud import WordCloud, STOPWORDS
 from pathlib import Path
 from flask_cors import CORS
+debug = False
+def mylog(msg):
+	if(debug):
+		print(msg)
+
 
 BHS = use('etcbc/bhsa')
 bhsA = BHS.api
@@ -268,14 +273,14 @@ def getLexCount(lexid, db='lxx'):
 	if (db == 'lxx'):
 		return LXX.api.Feature.freq_lemma.v(lexid)
 	elif (db == 'bhs'):
-		print("db == bhs...")
+		mylog("db == bhs...")
 		count = str(bhsA.Feature.freq_lex.v(lexid))
-		print ("count: " + count)
+		mylog("count: " + count)
 		return count
 	
 # returns dict of lexemes and frequencies:
 def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all',common=False, db='lxx',plain=False):
-	#print("Min: " + str(min))
+	#mylog("Min: " + str(min))
 	#print("getLexmes.gloss: " + str(gloss))
 	
 	#print("getLexemes with sections = " + ",".join([str(s) for s in sections]) +"; common: " + str(common))
@@ -424,7 +429,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 
 
 def getChaptersDict(book, db='lxx'):
-	print("getChapters(" + str(book) + "," + db +")")
+	mylog("getChapters(" + str(book) + "," + db +")")
 	api = getAPI(db)
 	return dict([(api.F.chapter.v(c), c) for c in api.L.d(book) if api.F.otype.v(c)=='chapter'])
 	
