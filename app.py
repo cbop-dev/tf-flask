@@ -525,13 +525,13 @@ def lexemesRoute(db='lxx'):
 		if (abbrev in restrictParamsList):
 			restrictedIds.update(theDicts['groups'][abbrev])
 			#restrictedIds.remove(abbrev)
-	print("restrictedIds: " + str(restrictedIds))
+	mylog("restrictedIds: " + str(restrictedIds))
 
 	excludedIds=set([int(x) for x in excludeParamsList if x.isdigit()])
 	for (abbrev,iArray) in theDicts['groups'].items():
 		if (abbrev in excludeParamsList):
 			excludedIds.update(theDicts['groups'][abbrev])
-	print("excludedIds: " + str(excludedIds))
+	mylog("excludedIds: " + str(excludedIds))
 
 	min = request.args.get('min') if ( request.args.get('min')) else 1
 	gloss = True if ( request.args.get('gloss') and int(request.args.get('gloss')) != 0) else False
@@ -577,7 +577,7 @@ def getLexRefs(id,db='lxx'):
 	# optionally limits to instances within any of the selected sections, exluding all others:
 	id=int(id)
 	sections = [int(s) for s in request.args.get('sections').split(',')] if request.args.get('sections') else []
-	print("getrefs: sections = [" + ",".join([str(s) for s in sections])+"]")
+	mylog("getrefs: sections = [" + ",".join([str(s) for s in sections])+"]")
 	if(api.F.otype.v(id) == 'word'):
 		lex=api.lex(id)
 		rNodes = {}
@@ -699,7 +699,7 @@ def consolidateBibleRefs(strings):
 				if (s not in bookHash.keys()):
 					bookHash[s]={}
 
-		#print(bookHash)
+		#mylog(bookHash)
 		
 		for (b,cvs) in bookHash.items():
 			outString = b + " " if not outString else outString + "; " + b
