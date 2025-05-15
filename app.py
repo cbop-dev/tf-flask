@@ -5,14 +5,16 @@ from flask import Flask, request, Response
 from wordcloud import WordCloud, STOPWORDS
 from pathlib import Path
 from flask_cors import CORS
+
+enableBHS=False
 debug = False
 def mylog(msg):
 	if(debug):
 		print(msg)
 
-
-BHS = use('etcbc/bhsa')
-bhsA = BHS.api
+if (enableBHS):
+	BHS = use('etcbc/bhsa')
+	bhsA = BHS.api
 LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
 
 #app = Flask(__name__, subdomain_matching=True)
@@ -25,7 +27,7 @@ def getAPI(db='lxx'):
 	if (db=='lxx'):
 		api=LXX.api
 		api.lex =lambda i : api.F.lex_utf8.v(i)
-	elif (db=='bhs'):
+	elif (enableBHS and db=='bhs'):
 		api=BHS.api
 		api.lex= lambda i : api.F.voc_lex_utf8.v(i) if api.F.voc_lex_utf8.v(i) else api.F.lex_utf8.v(i)
 		#api.lex =lambda i : api.F.lex_utf8.v(i)
@@ -85,25 +87,67 @@ posGroups={
 	
 }
 
-bhsPosDict ={
-0: {'abbrev': 'subs', 'desc':'noun, substantive'},
-1: {'abbrev': 'nmpr', 'desc':'proper noun'},
-2: {'abbrev': 'verb', 'desc':'verb'},
-3: {'abbrev': 'adjv', 'desc':'adjective'},
-4: {'abbrev': 'advb', 'desc':'adverb'},
-5: {'abbrev': 'intj', 'desc':'interjection'},
-6: {'abbrev': 'prps', 'desc':'personal pronoun'},
-7: {'abbrev': 'prep', 'desc':'preposition'},
-8: {'abbrev': 'prde', 'desc':'demonstrative pronoun'},
-9: {'abbrev': 'inrg', 'desc':'interogative'},
-10: {'abbrev': 'conj', 'desc':'conjunction'},
-11: {'abbrev': 'nega', 'desc':'negative particle'},
-12: {'abbrev': 'prin', 'desc':'interogative pronoun'},
-13: {'abbrev': 'art', 'desc':'article'},
+if (enableBHS):
+	bhsPosDict ={
+	0: {'abbrev': 'subs', 'desc':'noun, substantive'},
+	1: {'abbrev': 'nmpr', 'desc':'proper noun'},
+	2: {'abbrev': 'verb', 'desc':'verb'},
+	3: {'abbrev': 'adjv', 'desc':'adjective'},
+	4: {'abbrev': 'advb', 'desc':'adverb'},
+	5: {'abbrev': 'intj', 'desc':'interjection'},
+	6: {'abbrev': 'prps', 'desc':'personal pronoun'},
+	7: {'abbrev': 'prep', 'desc':'preposition'},
+	8: {'abbrev': 'prde', 'desc':'demonstrative pronoun'},
+	9: {'abbrev': 'inrg', 'desc':'interogative'},
+	10: {'abbrev': 'conj', 'desc':'conjunction'},
+	11: {'abbrev': 'nega', 'desc':'negative particle'},
+	12: {'abbrev': 'prin', 'desc':'interogative pronoun'},
+	13: {'abbrev': 'art', 'desc':'article'},	
+	}
+	tfBhsBooksDict = {
+	426591:{"abbrev":"Gen","syn":["Genesis",'Gen','Ge']},
+	426592:{"abbrev":"Exod","syn":["Exodus",'Exod','Exodus']},
+	426593:{"abbrev":"Lev","syn":["Leviticus",'Lev','Leviticus']},
+	426594:{"abbrev":"Num","syn":["Numeri",'Num','Numbers']},
+	426595:{"abbrev":"Deut","syn":["Deuteronomium",'Deut','Deuteronomy','Dt','Deu']},
+	426596:{"abbrev":"Josh","syn":["Josua",'Josh','Joshua',"Josua"]},
+	426597:{"abbrev":"Judg","syn":["Judices",'Judg','Judges','Jdg','Jdgs',"Judgs"]},
+	426598:{"abbrev":"1Sam","syn":["Samuel_I",'1Sam','1Samuel','ISamuel','1Sa','1Sam','ISa','ISam']},
+	426599:{"abbrev":"2Sam","syn":["Samuel_II",'2Sam','2Samuel','IISamuel','2Sa','2Sam','IISa','IISam']},
+	426600:{"abbrev":"1Kgs","syn":["Reges_I",'1Kgs','1Kings','IKings','1Kg','IKg']},
+	426601:{"abbrev":"2Kgs","syn":["Reges_II",'2Kgs','2Kings','IIKings','2Kg','IIKg']},
+	426602:{"abbrev":"Isa","syn":["Jesaia",'Isa','Isaiah','Is',"Jesaia"]},
+	426603:{"abbrev":"Jer","syn":["Jeremia",'Jer','Jeremiah',"Jeremia","Jerem","Jere"]},
+	426604:{"abbrev":"Ezek","syn":["Ezechiel",'Ezek','Ezekiel',"Ezechiel"]},
+	426605:{"abbrev":"Hos","syn":["Hosea",'Hos']},
+	426606:{"abbrev":"Joel","syn":["Joel"]},
+	426607:{"abbrev":"Amos","syn":["Amos","Am"]},
+	426608:{"abbrev":"Obad","syn":["Obadia",'Obad','Obadiah','Ob',"Obed"]},
+	426609:{"abbrev":"Jonah","syn":["Jona",'Jonah','Jon']},
+	426610:{"abbrev":"Mic","syn":["Micha",'Mic','Micah',"Micha","Mica"]},
+	426611:{"abbrev":"Nah","syn":["Nahum",'Nah']},
+	426612:{"abbrev":"Hab","syn":["Habakuk",'Hab','Habakkuk']},
+	426613:{"abbrev":"Zeph","syn":["Zephania",'Zeph','Zephaniah']},
+	426614:{"abbrev":"Hag","syn":["Haggai",'Hag','Haggai']},
+	426615:{"abbrev":"Zech","syn":["Sacharia",'Zech','Zechariah']},
+	426616:{"abbrev":"Mal","syn":["Maleachi",'Mal','Malachi']},
+	426617:{"abbrev":"Ps","syn":["Psalmi",'Ps(s)','Psalms','Psa']},
+	426618:{"abbrev":"Job","syn":["Iob",'Job','Jb']},
+	426619:{"abbrev":"Prov","syn":["Proverbia",'Prov','Proverbs','Pr']},
+	426620:{"abbrev":"Ruth","syn":["Ruth","Ru"]},
+	426621:{"abbrev":"Cant","syn":["Canticum",'Song','SongofSongs','SongofSolomon','Canticles','Cant']},
+	426622:{"abbrev":"Qoh","syn":["Ecclesiastes",'Eccl','Ecclesiastes','Qoheleth','Qoh',"Eccl"]},
+	426623:{"abbrev":"Lam","syn":["Threni",'Lam','Lamentations']},
+	426624:{"abbrev":"Esth","syn":["Esther",'Esth','Est']},
+	426625:{"abbrev":"Dan","syn":["Daniel","Dan"]},
+	426626:{"abbrev":"Ezra","syn":["Esra","Ezr"]},
+	426627:{"abbrev":"Neh","syn":["Nehemia",'Nehemiah',"Neh"]},
+	426628:{"abbrev":"1Chr","syn":["Chronica_I",'1Chr','1Chronicles','1Chron','1Ch','IChronicles','IChron','ICh','IChr']},
+	426629:{"abbrev":"2Chr","syn":["Chronica_II",'2Chr','2Chronicles','2Chron','2Ch','IIChronicles','IIChron','IICh','IIChr']},
+	}
 
-	
-}
-bhsPosGroups={
+
+	bhsPosGroups={
 "CONT":[0,1,2,3,4],
 	"CONTENT":[0,1,2,3,4],
 	"SYNT":[10,11],
@@ -182,47 +226,6 @@ tfLxxBooksDict = {
 }
 
 
-tfBhsBooksDict = {
-426591:{"abbrev":"Gen","syn":["Genesis",'Gen','Ge']},
-426592:{"abbrev":"Exod","syn":["Exodus",'Exod','Exodus']},
-426593:{"abbrev":"Lev","syn":["Leviticus",'Lev','Leviticus']},
-426594:{"abbrev":"Num","syn":["Numeri",'Num','Numbers']},
-426595:{"abbrev":"Deut","syn":["Deuteronomium",'Deut','Deuteronomy','Dt','Deu']},
-426596:{"abbrev":"Josh","syn":["Josua",'Josh','Joshua',"Josua"]},
-426597:{"abbrev":"Judg","syn":["Judices",'Judg','Judges','Jdg','Jdgs',"Judgs"]},
-426598:{"abbrev":"1Sam","syn":["Samuel_I",'1Sam','1Samuel','ISamuel','1Sa','1Sam','ISa','ISam']},
-426599:{"abbrev":"2Sam","syn":["Samuel_II",'2Sam','2Samuel','IISamuel','2Sa','2Sam','IISa','IISam']},
-426600:{"abbrev":"1Kgs","syn":["Reges_I",'1Kgs','1Kings','IKings','1Kg','IKg']},
-426601:{"abbrev":"2Kgs","syn":["Reges_II",'2Kgs','2Kings','IIKings','2Kg','IIKg']},
-426602:{"abbrev":"Isa","syn":["Jesaia",'Isa','Isaiah','Is',"Jesaia"]},
-426603:{"abbrev":"Jer","syn":["Jeremia",'Jer','Jeremiah',"Jeremia","Jerem","Jere"]},
-426604:{"abbrev":"Ezek","syn":["Ezechiel",'Ezek','Ezekiel',"Ezechiel"]},
-426605:{"abbrev":"Hos","syn":["Hosea",'Hos']},
-426606:{"abbrev":"Joel","syn":["Joel"]},
-426607:{"abbrev":"Amos","syn":["Amos","Am"]},
-426608:{"abbrev":"Obad","syn":["Obadia",'Obad','Obadiah','Ob',"Obed"]},
-426609:{"abbrev":"Jonah","syn":["Jona",'Jonah','Jon']},
-426610:{"abbrev":"Mic","syn":["Micha",'Mic','Micah',"Micha","Mica"]},
-426611:{"abbrev":"Nah","syn":["Nahum",'Nah']},
-426612:{"abbrev":"Hab","syn":["Habakuk",'Hab','Habakkuk']},
-426613:{"abbrev":"Zeph","syn":["Zephania",'Zeph','Zephaniah']},
-426614:{"abbrev":"Hag","syn":["Haggai",'Hag','Haggai']},
-426615:{"abbrev":"Zech","syn":["Sacharia",'Zech','Zechariah']},
-426616:{"abbrev":"Mal","syn":["Maleachi",'Mal','Malachi']},
-426617:{"abbrev":"Ps","syn":["Psalmi",'Ps(s)','Psalms','Psa']},
-426618:{"abbrev":"Job","syn":["Iob",'Job','Jb']},
-426619:{"abbrev":"Prov","syn":["Proverbia",'Prov','Proverbs','Pr']},
-426620:{"abbrev":"Ruth","syn":["Ruth","Ru"]},
-426621:{"abbrev":"Cant","syn":["Canticum",'Song','SongofSongs','SongofSolomon','Canticles','Cant']},
-426622:{"abbrev":"Qoh","syn":["Ecclesiastes",'Eccl','Ecclesiastes','Qoheleth','Qoh',"Eccl"]},
-426623:{"abbrev":"Lam","syn":["Threni",'Lam','Lamentations']},
-426624:{"abbrev":"Esth","syn":["Esther",'Esth','Est']},
-426625:{"abbrev":"Dan","syn":["Daniel","Dan"]},
-426626:{"abbrev":"Ezra","syn":["Esra","Ezr"]},
-426627:{"abbrev":"Neh","syn":["Nehemia",'Nehemiah',"Neh"]},
-426628:{"abbrev":"1Chr","syn":["Chronica_I",'1Chr','1Chronicles','1Chron','1Ch','IChronicles','IChron','ICh','IChr']},
-426629:{"abbrev":"2Chr","syn":["Chronica_II",'2Chr','2Chronicles','2Chron','2Ch','IIChronicles','IIChron','IICh','IIChr']},
-}
 
 @app.route("/<string:db>/lex/common/")
 @app.route("/lex/common/")
@@ -245,7 +248,7 @@ def getLexInfo(lexid,db='lxx'):
 			theLexObj['pos'] = api.F.sp.v(lexid) if theLexObj['greek'][0].islower() else 'proper noun or name'
 			
 			return theLexObj
-	elif (db == 'bhs'):
+	elif (enableBHS and  db == 'bhs'):
 		#bhsF=BHS.api.F
 		if (lexid > 0 and api.otype.v(lexid) == 'word'):
 			theLexObj = {'id': lexid}
@@ -272,7 +275,7 @@ def getLexCount(lexid, db='lxx'):
 	
 	if (db == 'lxx'):
 		return LXX.api.Feature.freq_lemma.v(lexid)
-	elif (db == 'bhs'):
+	elif (enableBHS and db == 'bhs'):
 		mylog("db == bhs...")
 		count = str(bhsA.Feature.freq_lex.v(lexid))
 		mylog("count: " + count)
@@ -295,7 +298,7 @@ def getLexemes(sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCou
 	totalInstances = 0
 	totalLexemes = 0
 	totalWordsInSections = 0
-	if (db=='bhs'):
+	if (enableBHS and db=='bhs'):
 		restrictStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in restrict]
 		excludeStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in exclude]
 	else:
@@ -545,7 +548,7 @@ def allChaptersRoute(db='lxx'):
 	booksChaps={}
 	booksDict = tfLxxBooksDict
     
-	if (db == 'bhs'):
+	if (enableBHS and db == 'bhs'):
 		booksDict = tfBhsBooksDict
 	
 	for bid in booksDict.keys():
@@ -661,7 +664,7 @@ def textsRoute(db='lxx'):
 
 def sectionFromNode(node,db='lxx'):
 	api=LXX.api
-	if (db=='bhs'):
+	if (enableBHS and db=='bhs'):
 		api=BHS.api
 	section= api.T.sectionFromNode(node)
 	string = ''
