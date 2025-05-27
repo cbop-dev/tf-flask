@@ -25,9 +25,9 @@ if (enableNT):
 
 LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
 
-#app = Flask(__name__, subdomain_matching=True)
+
 app = Flask(__name__)
-#app.config['SERVER_NAME'] = "tf.cbop.faith:5000"
+
 app.config['SERVER_NAME'] = "localhost.localdomain:5000"
 CORS(app)
 
