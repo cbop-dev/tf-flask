@@ -2,6 +2,7 @@ import sys
 #from tf.fabric import Fabric
 from tf.app import use
 from flask import Flask, request, Response
+from tf.advanced import sections
 from wordcloud import WordCloud, STOPWORDS
 from pathlib import Path
 from flask_cors import CORS
@@ -14,17 +15,18 @@ def mylog(msg):
 		print(msg)
 
 NT = None
-
+theDB = None
 if (enableBHS):
 	BHS = use('etcbc/bhsa')
 	bhsA = BHS.api
+	theDB = BHS
 
 if (enableNT):
 	NT = use('CenterBLC/N1904')
 	NTa = NT.api
+	theDB = NT
 
 LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
-
 
 app = Flask(__name__)
 
@@ -265,9 +267,6 @@ ntBooksDict={
 137805 : {"abbrev": "Jude" , "syn": ["Jude", "Jud"] , "words": 457 , "lemmas": 225 , "chapters": 1 },
 137806 : {"abbrev": "Rev" , "syn": ["Revelation", "Rev","Apocalypse", "Apoc", "Ap", "Re","Apo"] , "words": 9832 , "lemmas": 910 , "chapters": 22 }
 }
-
-
-
 
 @app.route("/<string:db>/lex/common/")
 @app.route("/lex/common/")
@@ -720,9 +719,6 @@ def textsRoute(db='lxx'):
 		texts=[]
 	return texts
 
-	
-
-
 def sectionFromNode(node,db='lxx'):
 	api=LXX.api
 	if (enableBHS and db=='bhs'):
@@ -781,3 +777,27 @@ def consolidateBibleRefs(strings):
 		outString = strings[0]
 	
 	return outString
+
+@app.route("/<string:db>/node")
+@app.route("/node")
+def getNodeFromRef(db='lxx'):
+	api=getAPI(db)
+	node = 0
+	book = request.args.get('book')	
+	chapter = request.args.get('chapter')
+	verse = request.args.get('verse')	
+	if (book and len(book) > 0):
+		ref = book + " " + chapter if chapter and len(chapter) > 0 else book
+		ref += ":" + verse if chapter and len(chapter) > 0 and verse and len(verse) > 0 else ''
+		if (db=='lxx'):
+			theDB=LXX
+		elif(db=='bhs'):
+			theDB=BHS
+		elif(db=='nt'):
+			theDB=NT
+		secs = sections.nodeFromSectionStr(theDB,ref)
+
+		if ((type(secs) is int) and secs > 0):
+			node = secs
+
+	return str(node)
