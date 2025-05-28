@@ -608,36 +608,107 @@ def getNodeFromRef(db='lxx'):
 
 	return str(node)
 
+
+
 def getNodeFromBcV(book,chapter,verse,db='lxx'):
 	node = 0
 	api=getAPI(db)
 	print("calling nodeFromSection(" + book + "," + str(chapter) +"," + str(verse)+")")
+	
 	node=api.T.nodeFromSection((book,int(chapter),int(verse)))
-
+	print("...got node" + str(node))
 	return node
 
 @app.route("/<string:db>/verses")
 @app.route("/verses")
 def getVersesFromRange(db='lxx'):
+	api=getAPI(db)
 	book = request.args.get('book').strip()
-	chapter = int(request.args.get('chapter').strip())
-	startVerse = int(request.args.get('start').strip())
-	endVerse = int(request.args.get('end').strip())
+	chapter = request.args.get('chapter').strip()
+	if (len(chapter) > 0):
+		chapter = int(chapter)
+
+	startVerse = request.args.get('start').strip()
+	if (len(startVerse) > 0):
+		startVerse = int(startVerse)
+	endVerse = request.args.get('end').strip()
+	
+	if (len(endVerse) > 0):
+		endVerse = int(endVerse)
+
 	verses = ''
 	startNode = getNodeFromBcV(book,chapter,startVerse,db)
 	endNode = getNodeFromBcV(book,chapter,endVerse,db)
-	if (startNode > 0 and endNode > 0 and endNode >= startNode):
-		verses = getVersesFromNodeRange(startNode,endNode,db)
-		print("calling getVersesFromNodeRange("+str(startNode)+","+str(endNode)+")")
-	return {'text': verses}
+	ref = ''
+	if (startNode == 0  or endNode == 0):
+		print("got nothing")
+	else:
+		if (startNode == None and endNode !=None):
+			for i in range(startVerse + 1,endVerse, 1):
+				if (startNode == None):
+					startNode = getNodeFromBcV(book,chapter,i,db)
+		
+		if (endNode == None and startNode != None):
+			for i in range(endVerse-1, startVerse, -1):
+				if (endNode == None):
+					endNode = getNodeFromBcV(book,chapter,i,db)
+		if (startNode != None and endNode != None and startNode > 0 and endNode > 0 and endNode >= startNode):
+			verses = getVersesFromNodeRange(startNode,endNode,db)
+			print("calling getVersesFromNodeRange("+str(startNode)+","+str(endNode)+")")
+			start = api.T.sectionFromNode(startNode)
+			if (startNode < endNode):
+				ref = start[0] + " " + str(start[1]) +":"+str(start[2])+"-"+str(api.T.sectionFromNode(endNode)[-1])
+			else:
+				ref = start[0] + " " + str(start[1]) +":"+str(start[2])
+		else:
+			print("got no nodes from range!")
+		
+	return {'text': verses, 'reference': ref}
 	
+
+@app.route("/<string:db>/verse")
+@app.route("/verse")
+def getVerse(db='lxx'):
+	api=getAPI(db)
+	book = request.args.get('book').strip()
+	chapter = int(request.args.get('chapter').strip())
+	verse = int(request.args.get('verse').strip())
+	
+	node = getNodeFromBcV(book,chapter,verse,db)
+	print("getVerse url calling getNodeFromBcV("+ ",".join([book,str(chapter),str(verse)])+")")
+	print("got node " + str(node))
+	if (node > 0):
+		text = getText(node,db)
+		print("Go text:'"+text+"' for node " + str(node))
+		sec = api.T.sectionFromNode(node)
+		ref = sec[0] + " "
+		if (sec[1] > 0):
+			ref += str(sec[1])
+			if (sec[2] > 0):
+				ref += ":" + str(sec[2])
+	else:
+		text = ''
+
+	
+	return {'text': text, 'reference': ref}
+	
+
 
 def getVersesFromNodeRange(startNode,endNode,db='lxx'):
 	text = ''
 	print("getVersesFromNodeRange(" +str(startNode) + ","+str(endNode)+")")
 	api=getAPI(db)
-	if (startNode > 0 and endNode > 0 and endNode >= startNode):
+	if (startNode == endNode):
+		text += api.T.text(startNode)
+	elif (startNode > 0 and endNode > 0 and endNode >= startNode):
 		for i in range(startNode,endNode,1):
 			if(api.F.otype.v(i) =='verse'):
 				text += api.T.text(i)
 	return text.strip()
+
+
+
+def getVerseFromRef(book,chap,v,db='lxx'):
+	api=getAPI(db)
+	node = getNodeFromRef
+	
