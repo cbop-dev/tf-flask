@@ -644,12 +644,12 @@ def getVersesFromRange(db='lxx'):
 		print("got nothing")
 	else:
 		if (startNode == None and endNode !=None):
-			for i in range(startVerse + 1,endVerse, 1):
+			for i in range(startVerse + 1,endVerse+1, 1):
 				if (startNode == None):
 					startNode = getNodeFromBcV(book,chapter,i,db)
 		
 		if (endNode == None and startNode != None):
-			for i in range(endVerse-1, startVerse, -1):
+			for i in range(endVerse-1, startVerse-1, -1):
 				if (endNode == None):
 					endNode = getNodeFromBcV(book,chapter,i,db)
 		if (startNode != None and endNode != None and startNode > 0 and endNode > 0 and endNode >= startNode):
@@ -701,7 +701,7 @@ def getVersesFromNodeRange(startNode,endNode,db='lxx'):
 	if (startNode == endNode):
 		text += api.T.text(startNode)
 	elif (startNode > 0 and endNode > 0 and endNode >= startNode):
-		for i in range(startNode,endNode,1):
+		for i in range(startNode,endNode+1,1):
 			if(api.F.otype.v(i) =='verse'):
 				text += api.T.text(i)
 	return text.strip()
