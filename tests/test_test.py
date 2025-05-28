@@ -27,3 +27,11 @@ def test_getCommonLexes():
     assert len(lexes['common']) == 46
     #assert lexes['common'][0]=="fred"
     #assert type(lexes['common']) == 'list'
+
+def test_getNodeFromSection():
+    db='nt'
+    start=382714
+    end=382716
+    expected = "Βίβλος γενέσεως Ἰησοῦ Χριστοῦ υἱοῦ Δαυεὶδ υἱοῦ Ἀβραάμ. Ἀβραὰμ ἐγέννησεν τὸν Ἰσαάκ, Ἰσαὰκ δὲ ἐγέννησεν τὸν Ἰακώβ, Ἰακὼβ δὲ ἐγέννησεν τὸν Ἰούδαν καὶ τοὺς ἀδελφοὺς αὐτοῦ,"
+    output = app.getVersesFromNodeRange(start,end,db)
+    assert (expected == output)
