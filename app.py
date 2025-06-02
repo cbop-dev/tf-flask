@@ -627,6 +627,9 @@ def getVersesFromRange(db='lxx'):
 	api=getAPI(db)
 	book = request.args.get('book').strip()
 	chapter = request.args.get('chapter').strip()
+	showVerses = True
+	if (request.args.get('showVerses') and request.args.get('showVerses')=='0'):
+		showVerses = False
 	if (len(chapter) > 0):
 		chapter = int(chapter)
 
@@ -655,7 +658,7 @@ def getVersesFromRange(db='lxx'):
 				if (endNode == None):
 					endNode = getNodeFromBcV(book,chapter,i,db)
 		if (startNode != None and endNode != None and startNode > 0 and endNode > 0 and endNode >= startNode):
-			verses = getVersesFromNodeRange(startNode,endNode,db)
+			verses = getVersesFromNodeRange(startNode,endNode,showVerses,db)
 			print("calling getVersesFromNodeRange("+str(startNode)+","+str(endNode)+")")
 			start = api.T.sectionFromNode(startNode)
 			if (startNode < endNode):
@@ -696,7 +699,7 @@ def getVerse(db='lxx'):
 	
 
 
-def getVersesFromNodeRange(startNode,endNode,db='lxx'):
+def getVersesFromNodeRange(startNode,endNode,showVerses=False,db='lxx'):
 	text = ''
 	print("getVersesFromNodeRange(" +str(startNode) + ","+str(endNode)+")")
 	api=getAPI(db)
@@ -705,6 +708,10 @@ def getVersesFromNodeRange(startNode,endNode,db='lxx'):
 	elif (startNode > 0 and endNode > 0 and endNode >= startNode):
 		for i in range(startNode,endNode+1,1):
 			if(api.F.otype.v(i) =='verse'):
+				if(showVerses):
+					sec=api.T.sectionFromNode(i)
+					if (sec[2]):
+						text+= str(sec[2]) +'. '
 				text += api.T.text(i)
 	return text.strip()
 
