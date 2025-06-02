@@ -616,6 +616,8 @@ def getNodeFromBcV(book,chapter,verse,db='lxx'):
 	print("calling nodeFromSection(" + book + "," + str(chapter) +"," + str(verse)+")")
 	
 	node=api.T.nodeFromSection((book,int(chapter),int(verse)))
+	if (type(node) != int):
+		node = 0
 	print("...got node" + str(node))
 	return node
 
@@ -673,11 +675,11 @@ def getVerse(db='lxx'):
 	book = request.args.get('book').strip()
 	chapter = int(request.args.get('chapter').strip())
 	verse = int(request.args.get('verse').strip())
-	
+	ref = ''
 	node = getNodeFromBcV(book,chapter,verse,db)
 	print("getVerse url calling getNodeFromBcV("+ ",".join([book,str(chapter),str(verse)])+")")
 	print("got node " + str(node))
-	if (node > 0):
+	if ((type(int(node)) == int) and int(node) > 0):
 		text = getText(node,db)
 		print("Go text:'"+text+"' for node " + str(node))
 		sec = api.T.sectionFromNode(node)
