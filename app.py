@@ -645,17 +645,19 @@ def getVersesFromRange(db='lxx'):
 	startNode = getNodeFromBcV(book,chapter,startVerse,db)
 	endNode = getNodeFromBcV(book,chapter,endVerse,db)
 	ref = ''
-	if (startNode == 0  or endNode == 0):
+	if (startNode == 0  and endNode == 0):
 		print("got nothing")
 	else:
-		if (startNode == None and endNode !=None):
+		if ((startNode == 0 or startNode == None) and (endNode != 0 and endNode != None)):
+			mylog(f"got end node {endNode} but no start node! trying to fix...")
 			for i in range(startVerse + 1,endVerse+1, 1):
 				if (startNode == None):
 					startNode = getNodeFromBcV(book,chapter,i,db)
 		
-		if (endNode == None and startNode != None):
+		if ((endNode == 0 or endNode == None) and (startNode != None and startNode != 0)):
+			mylog(f"got start node {startNode} but no end node! trying to fix with range:")
 			for i in range(endVerse-1, startVerse-1, -1):
-				if (endNode == None):
+				if (endNode == 0 or endNode == None):
 					endNode = getNodeFromBcV(book,chapter,i,db)
 		if (startNode != None and endNode != None and startNode > 0 and endNode > 0 and endNode >= startNode):
 			verses = getVersesFromNodeRange(startNode,endNode,showVerses,db)
