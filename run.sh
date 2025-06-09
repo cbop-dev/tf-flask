@@ -1,3 +1,3 @@
 #!/bin/bash
 . .venv/bin/activate && \
-flask run
+flask --app tfflask run --debug

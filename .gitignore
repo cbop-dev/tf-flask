@@ -4,8 +4,11 @@
 !tfData/tfNT.py
 !tfData/tfNT.py
 !tfData/*.py
-
-
-
-
+!tests/
+!tests/*.py
+!requirements.txt
+!install.sh
+!tfflask/
+!run.sh
+!test.sh
 tfData/__pycache__/
