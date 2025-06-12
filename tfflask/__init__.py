@@ -1,28 +1,38 @@
 import sys, os
-#from tf.fabric import Fabric
+from .env import mylog, debug
+from pathlib import Path
 from tf.app import use
 from tf.advanced import sections
-
 from flask import Flask, request, Response
 from wordcloud import WordCloud, STOPWORDS
-from pathlib import Path
 from flask_cors import CORS
 from .tfData.tfLXX import TfLXX
+from .tfData.tfDataset import TfDataset
 from .env import mylog, debug
-#debug=False
+#debugOn=debug
+debugOn=True
+debug = True
 
+class MyClass:
+	def __init__(self,path,ver=None):
+		self.dataset=use(path, version=ver)
+class MyChild(MyClass):
+	def __init__(self,path,vers):
+		super().__init__(path,ver=vers)
+		self.type="Child!"
 
 def create_app():
-#	print("LOADING APP!!!========================")
+	print("LOADING APP!!!========================")
+	mylog("--------------DEBUGGING ON--------------")
 	posDict = TfLXX.posDict
 	posGroups =TfLXX.posGroups
 	tfLxxBooksDict=TfLXX.bookDict
 
 	theBooksDict = tfLxxBooksDict
 
-	enableNT=True
+	enableNT=False
 	enableBHS=False
-	debug = False
+	#debug = True
 
 	NT = None
 	theDB = None
@@ -44,10 +54,28 @@ def create_app():
 		NTa = NT.api
 		theDB = NT
 		theBooksDict=ntBooksDict
-
-
-	LXX = use("CenterBLC/LXX", version="1935", hoist=globals())
-
+	mylog(f"about to load LXX. Python version: {sys.version}")
+	
+	#lxx = TfLXX()
+	#print("Got lxx. dataset=")
+	#print(lxx.dataset)
+	#print("calling use(lxx) from __init__.")
+	
+	datapath="CenterBLC/LXX"
+	version="1935"
+	'''
+	LXX = use("CenterBLC/LXX", version="1935")
+	datapath="CenterBLC/LXX"
+	version="1935"
+	print("got LXX. api=")
+	print(LXX.api)
+	lxx =MyChild(datapath,vers=version)
+	print("lxx.dataset = ")
+	print(lxx.dataset)
+	lxx2=TfDataset(datapath,version=version)
+	#print("lxx2.dataset:")
+	'''
+	lxx3=TfLXX()
 	app = Flask(__name__)
 
 	app.config['SERVER_NAME'] = "localhost.localdomain:5000"

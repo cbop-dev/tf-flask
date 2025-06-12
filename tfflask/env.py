@@ -1,4 +1,4 @@
 debug = False
-def mylog(msg):
-	if(debug):
+def mylog(msg, debugOn=debug):
+	if(debugOn):
 		print(msg)

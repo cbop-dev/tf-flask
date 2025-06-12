@@ -1,5 +1,9 @@
+import sys, os
+from tf.app import use
+from tf.advanced import sections
+from pathlib import Path
 from .tfDataset import TfDataset
-
+from ..env import mylog
 class TfLXX(TfDataset):
 	posDict={
 		0:  {'abbrev': 'n', 'desc':  'noun',},
@@ -106,7 +110,38 @@ class TfLXX(TfDataset):
 		623749: {'abbrev': "Sus", 'syn': ['Susanna', 'SusOG', 'Sus OG', 'SusannaOG','Susanna OG']},
 		623750: {'abbrev': "SusTh", 'syn': ['Susanna Th','SusannaTh']},
 	}
-
+	def getLemmaFeature(self):
+		return self.api.F.lex_utf8
+	
 	def __init__(self):
-		TfDataset.__init__(self,"CenterBLC/LXX", version="1935")
+		
+		#mylog("TfLXX constructor()...")
+		datasetPathname = "CenterBLC/LXX"
+		version="1935"
+		mylog(f"TfLXX.init('{datasetPathname}','{version}')...")
+		super().__init__(datasetPathname, version=version)
+		mylog("TfLXX() done calling super().init(). self.dataset =")
+		mylog(self.dataset)
+
 		self.posDict=TfLXX.posDict
+	
+		
+		#theTfDataset = use(datasetPathname,version) #if version else use(datasetPathname)
+		'''
+		if (self.dataset):
+			mylog("TfLxx.dataset= ")
+			mylog(self.dataset)
+			#self.dataset = theTfDataset
+			mylog("Got self.dataset: ")
+			mylog(self.dataset)
+			self.theAPI = self.dataset.api
+		else:
+			mylog("TfDataset() got no data!")
+			self.theAPI = None
+		self.datasets=["yes", "no"]
+		'''
+		self.posDict=None
+		self.posGroups=None
+		self.bookDict=None
+		self.dbname='lxx'
+		

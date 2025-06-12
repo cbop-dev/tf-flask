@@ -1,38 +1,105 @@
 import sys, os
+from tf.app import use
+from ..env import debug,mylog
+
 
 class Lexeme:
-	def __init__(self,id,total,gloss,beta,lex,plain,pos,lang):
+	def __init__(self,id,lemma,gloss=None,plain=None,translit=None,beta=None,pos=None,lang=None,total=0):
 		self.id = id if id else 0
-		self.total = total if total else 0
+		self.total = total 
 		self.gloss = gloss
-		self.beta = beta if beta else ''
-		self.lex = lex
-		self.plain = plain if plain else lex
+		self.beta = beta 
+		self.translit = translit
+		self.lemma = lemma
+		self.plain = plain if plain else lemma
 		self.pos = pos
 		self.lang = lang
 
-from tf.app import use
-from ..env import debug,mylog
+
 class TfDataset:
+	def getBeta(self,wordid):
+		return self.api.F.lex.v(wordid)
+	def getGloss(self, wordid):
+		return self.api.F.gloss.v(wordid)
+	def getFreq(self,wordid):
+		lem = self.getLemma(wordid)
+		freqs = [e[1] for e in self.getLemmaFeature().freqList() if e[0] == lem]
+		return freqs[0] if len(freqs) > 0 else 0
+	
+	def getLemma(self,wordid):
+		return self.getLemmaFeature().v(wordid)
+	
+	def getLemmaFeature(self):
+		return self.api.F.lemma
 	def getAPI(self):
 		return self.api
 	def getBooksDict(self):
 		return self.booksDict
-	def __init__(self,datasetPathname,version=None):
-		self.dataset=use(datasetPathname,version) if version else use(datasetPathname)
-		self.api=self.dataset.api
+	def __init__(self,datasetPathname,version=None,dbname='lxx'):
+		mylog(f"TfDataset.init('{datasetPathname}','{version}')...")
+		self.lexemes=set()
+		theTfDataset = use(datasetPathname,version=version) #if version else use(datasetPathname)
+		if (theTfDataset):
+			mylog("TfDataset() got data: ")
+			mylog(theTfDataset)
+			self.dataset = theTfDataset
+			mylog("Got self.dataset: ")
+			mylog(self.dataset)
+			self.api = self.dataset.api
+		else:
+			mylog("TfDataset() got no data!")
+			self.api = None
+		#self.datasets=["yes", "no"]
 		self.posDict=None
 		self.posGroups=None
 		self.bookDict=None
-		self.dbname='lxx'
+		self.dbname=dbname
+		self.buildLexData()
+
+	def buildLexData(self):
+		self.lexemes = dict()
+		lemmaFreqDict={o[0]:o[1] for o in self.getLemmaFeature().freqList()}
+		mylog("buildLexData(): gonna build self.lexemes...")
+		self.words = list()
+		for w in self.api.F.otype.s('word'):
+			lem = self.getLemma(w)
+			if lem not in self.lexemes.keys():
+				self.lexemes[lem] = Lexeme(0,lem,gloss=self.getGloss(w),
+						total=lemmaFreqDict[lem] if lemmaFreqDict[lem] else 0)
+			self.words.append(self.getLemma(w))
+		self.bookDict = self.getBooks()
+		mylog("buildLexData(): done with first loop")
+		
+		for i, lemLex in enumerate(sorted(self.lexemes.items())):
+			lemLex[1].id=i
+
+	def numWords(self,node):
+		return len([w for w in self.api.L.d(node) if self.api.F.otype.v(w)=='word'])
+	
+	def getBooks(self):
+		if not self.bookDict:
+			self.bookDict = {b: {'name': self.api.F.book.v(b), 'abbrev':self.api.F.book.v(b), 'words':self.numWords(b)} for b in self.api.F.otype.s('book')}
+		return self.bookDict
+	
 	def getLexCount(self):
-		return 0
+		count = 0
+		if (self.lexemes):
+			count = len(self.lexemes)
+		return count
 	
 	def isProperNoun(self, wordid):
 		return (self.api.F.sp.v(wordid) == 'noun') and self.api.F.lex_utf8.v(wordid)[0].isupper()
+	def getLexObj(self,wordid):
+		return None
+	
+	# getLex: returns Lexeme object with given ID. (NB: 'id' is assigned by buildLexData() function, using indexes of sorted lemmas. I.e., the first alphabetically listed lemma has an id of 0, the last one has 5395)
+	def getLex(self,lexID):
+		foundLexes = [l for l in self.lexemes.values() if l.id==lexID]
+		if len(foundLexes) > 0:
+			return foundLexes[0]
+		else:
+			return None
 
-	def getLex(self,wordid):
-		return self.api.F.lex_utf8.v(wordid)
 	
 		# returns dict of lexemes and frequencies:
 	def getLexemes(self,sections=[], restrict=[],exclude=[], min=1, gloss=False, totalCount=True,pos=False,checkProper=True, beta=True,type='all',common=False,plain=False):
@@ -45,8 +112,8 @@ class TfDataset:
 		totalLexemes = 0
 		totalWordsInSections = 0
 
-		restrictStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in restrict]
-		excludeStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in exclude]
+		restrictStrings=[v['desc'] for (k,v) in self.posDict.items() if k in restrict]
+		excludeStrings=[v['desc'] for (k,v) in self.posDict.items() if k in exclude]
 		#print("restrictStrings: " + str(restrictStrings))
 		restricted = True if len(restrictStrings) > 0 else False
 		excluded  = True if len(excludeStrings) > 0 else False
@@ -102,31 +169,31 @@ class TfDataset:
 				if(includeWord(wordid)):	
 					
 					totalInstances += 1
-					if (not self.getLex(wordid) in lexemes.keys()):
+					if (not self.getLemma(wordid) in lexemes.keys()):
 						totalLexemes +=1
-						lexemes[self.getLex(wordid)] = {'count': 1, 'id': wordid}
+						lexemes[self.getLemma(wordid)] = {'count': 1, 'id': wordid}
 						# track which of the give sections this word is in:
 						if (common):
-							sectionsLexemes[self.getLex(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
+							sectionsLexemes[self.getLemma(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
 
 						if (totalCount):
-							lexemes[self.getLex(wordid)]['total'] = int(self.api.F.freq_lemma.v(wordid));
+							lexemes[self.getLemma(wordid)]['total'] = int(self.getLexCount(wordid));
 						if (gloss):
-							lexemes[self.getLex(wordid)]['gloss'] = self.api.F.gloss.v(wordid)
+							lexemes[self.getLemma(wordid)]['gloss'] = self.getGloss(wordid)
 						if (beta):
-							lexemes[self.getLex(wordid)]['beta'] = self.api.F.lex.v(wordid)
+							lexemes[self.getLemma(wordid)]['beta'] = self.getBeta(wordid)
 						if (pos):
-							lexemes[self.getLex(wordid)]['pos'] = self.api.F.sp.v(wordid)
+							lexemes[self.getLemma(wordid)]['pos'] = self.api.F.sp.v(wordid)
 							#print("Got pos!")
-							if (lexemes[self.getLex(wordid)]['pos'] == 'noun' and self.getLex(wordid)[0].isupper()):
+							if (lexemes[self.getLemma(wordid)]['pos'] == 'noun' and self.getLemma(wordid)[0].isupper()):
 								if (checkProper):
-									lexemes[self.getLex(wordid)]['pos'] = 'proper noun or name'
+									lexemes[self.getLemma(wordid)]['pos'] = 'proper noun or name'
 								else:
-									lexemes[self.getLex(wordid)]['proper'] = True
+									lexemes[self.getLemma(wordid)]['proper'] = True
 					else:
-						lexemes[self.getLex(wordid)]['count'] += 1
+						lexemes[self.getLemma(wordid)]['count'] += 1
 						if (common):
-							sectionsLexemes[self.getLex(wordid)].update([int(s) for s in (set(self.api.L.u(wordid)) & set(sections))])
+							sectionsLexemes[self.getLemma(wordid)].update([int(s) for s in (set(self.api.L.u(wordid)) & set(sections))])
 			
 			id=int(nodeid)
 			if (self.api.L.d(id) and not recursive):
@@ -170,8 +237,8 @@ class TfDataset:
 		#mylog("getChapters(" + str(book) + "," + db +")")
 		return dict([(self.api.F.chapter.v(c), c) for c in self.api.L.d(book) if self.api.F.otype.v(c)=='chapter'])
 		
-	def getBooksDict(self):
-		return dict([(b, self.api.F.book.v(b)) for b in self.api.N.walk() if self.api.F.otype.v(b) == 'book'])
+	#def getBooksDict(self):
+	#	return dict([(b, self.api.F.book.v(b)) for b in self.api.N.walk() if self.api.F.otype.v(b) == 'book'])
 
 ### pasted from init.py:
 	def getVersesFromNodeRange(self,startNode,endNode,showVerses=False):
