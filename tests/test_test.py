@@ -1,14 +1,16 @@
 import pytest, os
-import sys
+import sys, json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ##import app as app
 from tfflask import create_app
 from tfflask.tfData.tfDataset import TfDataset
 from tfflask.tfData.tfLXX import TfLXX
+from tfflask.tfData.tfNT import TfN1904
+NT=None
+
 @pytest.fixture()
 def base_url():
     return "http://localhost:5000/"
-
 
 @pytest.fixture()
 def app(base_url):
@@ -22,6 +24,12 @@ def app(base_url):
     yield app
 
     # clean up / reset resources here
+@pytest.fixture()
+def nt():
+    global NT
+    if(not NT):
+        NT= TfN1904()
+    return NT
 
 @pytest.fixture()
 def lxx():
@@ -94,7 +102,15 @@ def tes_getNodeFromBcV():
     text = app.getText(node, db)
     assert (text == test['text'])
 
-def test_lxx(lxx):
+def tes_test(client,runner):
     count = 1
     #count = lxx.getLexCount()
     assert(count > 0)
+
+def test_get(client,runner):
+    response = client.get("/nt/text/1")
+    print(response.data)
+    mydata=json.loads(response.data.decode('utf8'))
+    print(mydata)
+    assert(mydata['text']=='Βίβλος')
+    #assert(False)

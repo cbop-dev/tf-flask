@@ -8,6 +8,8 @@ from wordcloud import WordCloud, STOPWORDS
 from flask_cors import CORS
 from .tfData.tfLXX import TfLXX
 from .tfData.tfDataset import TfDataset
+from .tfData.tfNT import TfN1904
+from .tfData.tfBhs import TfBHS
 from .env import mylog, debug
 #debugOn=debug
 debugOn=True
@@ -29,31 +31,36 @@ def create_app():
 	tfLxxBooksDict=TfLXX.bookDict
 
 	theBooksDict = tfLxxBooksDict
-
-	enableNT=False
+	enableLXX=True
+	enableNT=True
 	enableBHS=False
 	#debug = True
-
+	LXX = None
+	BHS=None
 	NT = None
 	theDB = None
+	if (enableLXX):
+		LXX = TfLXX()
 
 	if (enableBHS):
-		from .tfData import tfBhs
-		bhsPosGroups=tfBhs.bhsPosGroups
-		bhsPosDict=tfBhs.bhsPosDict
-		tfBhsBooksDict=tfBhs.tfBhsBooksDict
-		BHS = use('etcbc/bhsa')
+		from .tfData.tfBhs import TfBHS
+		bhsPosGroups=TfBHS.posGroups
+		bhsPosDict=TfBHS.posDict
+		tfBhsBooksDict=TfBHS.bookDict
+		#BHS = use('etcbc/bhsa')
+		BHS=TfBHS()
 		bhsA = BHS.api
 		theDB = BHS
-		theBooksDict=tfBhsBooksDict
+		theBooksDict=BHS.bookDict
 
 	if (enableNT):
 		from .tfData import tfNT
-		ntBooksDict = tfNT.ntBooksDict
-		NT = use('CenterBLC/N1904')
+		NT=TfN1904()
+		#ntBooksDict = tfNT.ntBooksDict
+		#NT = use('CenterBLC/N1904')
 		NTa = NT.api
 		theDB = NT
-		theBooksDict=ntBooksDict
+		theBooksDict=NT.bookDict
 	mylog(f"about to load LXX. Python version: {sys.version}")
 	
 	#lxx = TfLXX()
@@ -75,7 +82,7 @@ def create_app():
 	lxx2=TfDataset(datapath,version=version)
 	#print("lxx2.dataset:")
 	'''
-	lxx3=TfLXX()
+	#lxx3=TfLXX()
 	app = Flask(__name__)
 
 	app.config['SERVER_NAME'] = "localhost.localdomain:5000"
@@ -279,19 +286,24 @@ def create_app():
 	@app.route("/text/<int:id>")
 	def textRoute(id,db='lxx'):
 		api=getAPI(db)
-		return {'section': getRef(id,db), 'text': getText(id,db), 'id':int(id), 'type': api.F.otype.v(int(id))}
+		return {'section': getRef(id,db), 'text': getText(id,db), 'id':int(id), 'type': api.F.otype.v(int(id))} if api else ''
 
 	@app.route("/texts/")
 	@app.route("/<string:db>/texts/", methods=['GET','POST'])
 	def textsRoute(db='lxx'):
+		api=getAPI(db)
 		texts = []
-		ids = []
-		ids=request.args.get("sections").split(",")
-		try:
-			for id in ids:
-				texts.append({'section':getRef(id,db), 'text':getText(id,db), 'id': int(id)})
-		except:
-			texts=[]
+		if(api):
+			
+			refs=[]
+			ids=request.args.get("sections").split(",")
+			if not len(ids):
+				refs=request.args.get("refs").split(";")
+			try:
+				for id in ids:
+					texts.append({'section':getRef(id,db), 'text':getText(id,db), 'id': int(id)})
+			except:
+				texts=[]
 		return texts
 
 	@app.route("/<string:db>/node")
@@ -299,22 +311,24 @@ def create_app():
 	def getNodeFromRefRoute(db='lxx'):
 		api=getAPI(db)
 		node = 0
-		book = request.args.get('book')	
-		chapter = request.args.get('chapter')
-		verse = request.args.get('verse')	
-		if (book and len(book) > 0):
-			ref = book + " " + chapter if chapter and len(chapter) > 0 else book
-			ref += ":" + verse if chapter and len(chapter) > 0 and verse and len(verse) > 0 else ''
-			if (db=='lxx'):
-				theDB=LXX
-			elif(db=='bhs'):
-				theDB=BHS
-			elif(db=='nt'):
-				theDB=NT
-			secs = sections.nodeFromSectionStr(theDB,ref)
+		if(api):
+			
+			book = request.args.get('book')	
+			chapter = request.args.get('chapter')
+			verse = request.args.get('verse')	
+			if (book and len(book) > 0):
+				ref = book + " " + chapter if chapter and len(chapter) > 0 else book
+				ref += ":" + verse if chapter and len(chapter) > 0 and verse and len(verse) > 0 else ''
+				if (db=='lxx'):
+					theDB=LXX
+				elif(db=='bhs'):
+					theDB=BHS
+				elif(db=='nt'):
+					theDB=NT
+				secs = sections.nodeFromSectionStr(theDB,ref)
 
-			if ((type(secs) is int) and secs > 0):
-				node = secs
+				if ((type(secs) is int) and secs > 0):
+					node = secs
 
 		return str(node)
 
@@ -322,82 +336,84 @@ def create_app():
 	@app.route("/verses")
 	def getVersesFromRange(db='lxx'):
 		api=getAPI(db)
-		book = request.args.get('book').strip()
-		chapter = request.args.get('chapter').strip()
-		showVerses = True
-		if (request.args.get('showVerses') and request.args.get('showVerses')=='0'):
-			showVerses = False
-		if (len(chapter) > 0):
-			chapter = int(chapter)
+		if(api):
+			book = request.args.get('book').strip()
+			chapter = request.args.get('chapter').strip()
+			showVerses = True
+			if (request.args.get('showVerses') and request.args.get('showVerses')=='0'):
+				showVerses = False
+			if (len(chapter) > 0):
+				chapter = int(chapter)
 
-		startVerse = request.args.get('start').strip()
-		if (len(startVerse) > 0):
-			startVerse = int(startVerse)
-		endVerse = request.args.get('end').strip()
-		
-		if (len(endVerse) > 0):
-			endVerse = int(endVerse)
-
-		verses = ''
-		startNode = getNodeFromBcV(book,chapter,startVerse,db)
-		endNode = getNodeFromBcV(book,chapter,endVerse,db)
-		ref = ''
-		if (startNode == 0  and endNode == 0):
-			print("got nothing")
-		else:
-			if ((startNode == 0 or startNode == None) and (endNode != 0 and endNode != None)):
-				mylog(f"got end node {endNode} but no start node! trying to fix...")
-				for i in range(startVerse + 1,endVerse+1, 1):
-					if (startNode == None):
-						startNode = getNodeFromBcV(book,chapter,i,db)
+			startVerse = request.args.get('start').strip()
+			if (len(startVerse) > 0):
+				startVerse = int(startVerse)
+			endVerse = request.args.get('end').strip()
 			
-			if ((endNode == 0 or endNode == None) and (startNode != None and startNode != 0)):
-				mylog(f"got start node {startNode} but no end node! trying to fix with range:")
-				for i in range(endVerse-1, startVerse-1, -1):
-					if (endNode == 0 or endNode == None):
-						endNode = getNodeFromBcV(book,chapter,i,db)
-			if (startNode != None and endNode != None and startNode > 0 and endNode > 0 and endNode >= startNode):
-				verses = getVersesFromNodeRange(startNode,endNode,showVerses,db)
-				print("calling getVersesFromNodeRange("+str(startNode)+","+str(endNode)+")")
-				start = api.T.sectionFromNode(startNode)
-				if (startNode < endNode):
-					ref = start[0] + " " + str(start[1]) +":"+str(start[2])+"-"+str(api.T.sectionFromNode(endNode)[-1])
-				else:
-					ref = start[0] + " " + str(start[1]) +":"+str(start[2])
+			if (len(endVerse) > 0):
+				endVerse = int(endVerse)
+
+			verses = ''
+			startNode = getNodeFromBcV(book,chapter,startVerse,db)
+			endNode = getNodeFromBcV(book,chapter,endVerse,db)
+			ref = ''
+			if (startNode == 0  and endNode == 0):
+				print("got nothing")
 			else:
-				print("got no nodes from range!")
-			
-		return {'text': verses, 'reference': ref}
+				if ((startNode == 0 or startNode == None) and (endNode != 0 and endNode != None)):
+					mylog(f"got end node {endNode} but no start node! trying to fix...")
+					for i in range(startVerse + 1,endVerse+1, 1):
+						if (startNode == None):
+							startNode = getNodeFromBcV(book,chapter,i,db)
+				
+				if ((endNode == 0 or endNode == None) and (startNode != None and startNode != 0)):
+					mylog(f"got start node {startNode} but no end node! trying to fix with range:")
+					for i in range(endVerse-1, startVerse-1, -1):
+						if (endNode == 0 or endNode == None):
+							endNode = getNodeFromBcV(book,chapter,i,db)
+				if (startNode != None and endNode != None and startNode > 0 and endNode > 0 and endNode >= startNode):
+					verses = getVersesFromNodeRange(startNode,endNode,showVerses,db)
+					print("calling getVersesFromNodeRange("+str(startNode)+","+str(endNode)+")")
+					start = api.T.sectionFromNode(startNode)
+					if (startNode < endNode):
+						ref = start[0] + " " + str(start[1]) +":"+str(start[2])+"-"+str(api.T.sectionFromNode(endNode)[-1])
+					else:
+						ref = start[0] + " " + str(start[1]) +":"+str(start[2])
+				else:
+					print("got no nodes from range!")
+				
+		return {'text': verses, 'reference': ref} if verses and ref else {}
 		
 	@app.route("/<string:db>/verses/",methods=['POST'])
 	def getVersesPost(db='lxx'):
-		return request.form['chapters'] if request.form['chapters'] else 'nada'
+		return request.form['chapters'] if request.form['chapters'] else ''
 
 	@app.route("/<string:db>/verse")
 	@app.route("/verse")
 	def getVerse(db='lxx'):
 		api=getAPI(db)
-		book = request.args.get('book').strip()
-		chapter = int(request.args.get('chapter').strip())
-		verse = int(request.args.get('verse').strip())
-		ref = ''
-		node = getNodeFromBcV(book,chapter,verse,db)
-		print("getVerse url calling getNodeFromBcV("+ ",".join([book,str(chapter),str(verse)])+")")
-		print("got node " + str(node))
-		if ((type(int(node)) == int) and int(node) > 0):
-			text = getText(node,db)
-			print("Go text:'"+text+"' for node " + str(node))
-			sec = api.T.sectionFromNode(node)
-			ref = sec[0] + " "
-			if (sec[1] > 0):
-				ref += str(sec[1])
-				if (sec[2] > 0):
-					ref += ":" + str(sec[2])
-		else:
-			text = ''
+		if(api):
+			book = request.args.get('book').strip()
+			chapter = int(request.args.get('chapter').strip())
+			verse = int(request.args.get('verse').strip())
+			ref = ''
+			node = getNodeFromBcV(book,chapter,verse,db)
+			print("getVerse url calling getNodeFromBcV("+ ",".join([book,str(chapter),str(verse)])+")")
+			print("got node " + str(node))
+			if ((type(int(node)) == int) and int(node) > 0):
+				text = getText(node,db)
+				print("Go text:'"+text+"' for node " + str(node))
+				sec = api.T.sectionFromNode(node)
+				ref = sec[0] + " "
+				if (sec[1] > 0):
+					ref += str(sec[1])
+					if (sec[2] > 0):
+						ref += ":" + str(sec[2])
+			else:
+				text = ''
 
-		
-		return {'text': text, 'reference': ref}
+			
+		return {'text': text, 'reference': ref} if text and ref else {}
 		
 ################################
 # non-route functions:         #
@@ -406,113 +422,121 @@ def create_app():
 		text = ''
 		print("getVersesFromNodeRange(" +str(startNode) + ","+str(endNode)+")")
 		api=getAPI(db)
-		if (startNode == endNode):
-			text += api.T.text(startNode)
-			print("	got single node; text= " + text)
-		elif (startNode > 0 and endNode >= startNode):
-			for i in range(startNode,endNode+1,1):
-				if(api.F.otype.v(i) =='verse'):
-					if(showVerses):
-						sec=api.T.sectionFromNode(i)
-						if (sec[2]):
-							text+= str(sec[2]) +'. '
-					text += api.T.text(i)
-				else:
-					print("Node " + str(i) + " was not a verse, but is: " + api.F.otype.v(i) +", text = " + api.T.text(i))
-			print("	got range. text = " + text)
+		if(api):
+			if (startNode == endNode):
+				text += api.T.text(startNode)
+				print("	got single node; text= " + text)
+			elif (startNode > 0 and endNode >= startNode):
+				for i in range(startNode,endNode+1,1):
+					if(api.F.otype.v(i) =='verse'):
+						if(showVerses):
+							sec=api.T.sectionFromNode(i)
+							if (sec[2]):
+								text+= str(sec[2]) +'. '
+						text += api.T.text(i)
+					else:
+						print("Node " + str(i) + " was not a verse, but is: " + api.F.otype.v(i) +", text = " + api.T.text(i))
+				print("	got range. text = " + text)
 
 		return text.strip()
 	
 	# returns refs as {'refs': <string array>, 'nodes': <int array of verses>, 'bookCounts': <dict of booksids->count>, 'total', <total instances in BHS>}
 	def getLexRefs(id,db='lxx'):
 		api=getAPI(db)
-		# optionally limits to instances within any of the selected sections, exluding all others:
-		id=int(id)
-		sections = [int(s) for s in request.args.get('sections').split(',')] if request.args.get('sections') else []
-		mylog("getrefs: sections = [" + ",".join([str(s) for s in sections])+"]")
-		if(api.F.otype.v(id) == 'word'):
-			lex=api.lex(id)
-			rNodes = {}
-			bookCounts = {}
-			queryDetail = 'verse'
-			verseCounts={}
-			if (request.args.get("detail")):
-				if (request.args.get("detail") == "book"):
-					queryDetail = 'book'
-				elif (request.args.get("detail") == "chapter"):
-					queryDetail = 'chapter'
+		if(api):
+			# optionally limits to instances within any of the selected sections, exluding all others:
+			id=int(id)
+			sections = [int(s) for s in request.args.get('sections').split(',')] if request.args.get('sections') else []
+			mylog("getrefs: sections = [" + ",".join([str(s) for s in sections])+"]")
+			if(api.F.otype.v(id) == 'word'):
+				lex=api.lex(id)
+				rNodes = {}
+				bookCounts = {}
+				queryDetail = 'verse'
+				verseCounts={}
+				if (request.args.get("detail")):
+					if (request.args.get("detail") == "book"):
+						queryDetail = 'book'
+					elif (request.args.get("detail") == "chapter"):
+						queryDetail = 'chapter'
 
-			#refs = {}
-			for n in api.N.walk():
-				if (api.F.otype.v(n) == 'word' and api.lex(n) == lex and (len(sections) == 0 or (len(set(api.L.u(n)) & set(sections)) > 0) )):
-					sectionTuple= api.T.sectionTuple(n)
-					if (queryDetail == 'book'):
-						sectionNode = sectionTuple[0]
-					elif (queryDetail == 'chapter'):
-						sectionNode = sectionTuple[1]
-					else:
-						sectionNode = sectionTuple[2]
+				#refs = {}
+				for n in api.N.walk():
+					if (api.F.otype.v(n) == 'word' and api.lex(n) == lex and (len(sections) == 0 or (len(set(api.L.u(n)) & set(sections)) > 0) )):
+						sectionTuple= api.T.sectionTuple(n)
+						if (queryDetail == 'book'):
+							sectionNode = sectionTuple[0]
+						elif (queryDetail == 'chapter'):
+							sectionNode = sectionTuple[1]
+						else:
+							sectionNode = sectionTuple[2]
 
-					#rNodes.add(sectionNode) # gets node of containing verse
-					refTuple = api.T.sectionFromNode(n) # gets tuple of containing verse
-					if (queryDetail == 'book'):
-						refString = refTuple[0]
-					elif (queryDetail == 'chapter'):
-						refString = refTuple[0] + " " + str(refTuple[1])
-					else:
-						refString = refTuple[0] + " " + ":".join(map(str,refTuple[1:]))
-					#refs.add(refString)
-					bookid=api.L.u(n)[-1]
-					if bookid not in bookCounts:
-						bookCounts[bookid]=1
-					else:
-						bookCounts[bookid] +=1
-					if sectionNode not in rNodes:
-						rNodes[sectionNode]=refString
-						verseCounts[sectionNode]=1
-					else:
-						verseCounts[sectionNode] +=1
-						#rNodes[sectionNode]=refString+"(" + str(verseCounts[sectionNode]) + ")"
+						#rNodes.add(sectionNode) # gets node of containing verse
+						refTuple = api.T.sectionFromNode(n) # gets tuple of containing verse
+						if (queryDetail == 'book'):
+							refString = refTuple[0]
+						elif (queryDetail == 'chapter'):
+							refString = refTuple[0] + " " + str(refTuple[1])
+						else:
+							refString = refTuple[0] + " " + ":".join(map(str,refTuple[1:]))
+						#refs.add(refString)
+						bookid=api.L.u(n)[-1]
+						if bookid not in bookCounts:
+							bookCounts[bookid]=1
+						else:
+							bookCounts[bookid] +=1
+						if sectionNode not in rNodes:
+							rNodes[sectionNode]=refString
+							verseCounts[sectionNode]=1
+						else:
+							verseCounts[sectionNode] +=1
+							#rNodes[sectionNode]=refString+"(" + str(verseCounts[sectionNode]) + ")"
 
-			return {'refs': list(rNodes.values()), 'nodes': list(rNodes.keys()), 'bookcounts': dict(bookCounts), 'total': sum(bookCounts.values())}
+				return {'refs': list(rNodes.values()), 'nodes': list(rNodes.keys()), 'bookcounts': dict(bookCounts), 'total': sum(bookCounts.values())}
+			else:
+				return {}
 		else:
-			return ''
+			return {}
 
 	def getText(nodeId,db='lxx'):
 		api=getAPI(db)
-		try:
-			return api.T.text(int(nodeId)).strip()
-		except:
-			return ''
-
+		if(api):
+			try:
+				return api.T.text(int(nodeId)).strip()
+			except:
+				return ''
+		return ''
 	def getRef(nodeId, db='lxx'):
 		api=getAPI(db)
-		try:
-			return " ".join(map(str, api.T.sectionFromNode(int(nodeId))))
-		except:
-			return ''
-
+		if(api):
+			try:
+				return " ".join(map(str, api.T.sectionFromNode(int(nodeId))))
+			except:
+				return ''
+		return ''
 
 	def getNodeFromBcV(book,chapter,verse,db='lxx'):
 		node = 0
 		api=getAPI(db)
-		print("calling nodeFromSection(" + book + "," + str(chapter) +"," + str(verse)+")")
-		
-		node=api.T.nodeFromSection((book,int(chapter),int(verse)))
-		if (type(node) != int):
-			node = 0
-		print("...got node" + str(node))
+		if(api):
+			print("calling nodeFromSection(" + book + "," + str(chapter) +"," + str(verse)+")")
+			
+			node=api.T.nodeFromSection((book,int(chapter),int(verse)))
+			if (type(node) != int):
+				node = 0
+			print("...got node" + str(node))
 		return node
 
 	def getAPI(db='lxx'):
+		api=None
 		if (db=='lxx'):
 			api=LXX.api
-			api.lex =lambda i : api.F.lex_utf8.v(i)
-			theBooksDict=tfLxxBooksDict
+			api.lex =LXX.getLemma
+			theBooksDict=LXX.bookDict
 		elif (enableNT and db=='nt'):
 			api=NTa
-			api.lex = lambda i: api.F.lemma.v(i)
-			theBooksDict=ntBooksDict
+			api.lex = NT.getLemma
+			theBooksDict=NT.bookDict
 		elif (enableBHS and db=='bhs'):
 			api=BHS.api
 			api.lex= lambda i : api.F.voc_lex_utf8.v(i) if api.F.voc_lex_utf8.v(i) else api.F.lex_utf8.v(i)
@@ -527,17 +551,19 @@ def create_app():
 			return {'dict': bhsPosDict, 'groups': bhsPosGroups}
 
 	def sectionFromNode(node,db='lxx'):
-		api=LXX.api
-		if (enableBHS and db=='bhs'):
-			api=BHS.api
-		section= api.T.sectionFromNode(node)
-		string = ''
-		if (len(section) == 3):
-			string = str(section[0]) + " " + str(section[1]) + ":" + str(section[2])
-		elif (len(section) == 2):
-			string = str(section[0]) + " " + str(section[1])
-		else:#book only:
-			string = str(section[0])
+		api=getAPI(db)
+		string=''
+		if(api):
+			if (enableBHS and db=='bhs'):
+				api=BHS.api
+			section= api.T.sectionFromNode(node)
+			string = ''
+			if (len(section) == 3):
+				string = str(section[0]) + " " + str(section[1]) + ":" + str(section[2])
+			elif (len(section) == 2):
+				string = str(section[0]) + " " + str(section[1])
+			else:#book only:
+				string = str(section[0])
 		return string
 
 	def consolidateBibleRefs(strings):
@@ -595,144 +621,146 @@ def create_app():
 		#print("getLexemes().Restricted: " + ",".join([str(x) for x in restrict]))
 		#print("getLexemes().Excluded: " + ",".join([str(x) for x in exclude]))
 		api=getAPI(db)
-		theDicts=getDicts(db)
+		theResponseObj=None
+		if(api):
+			theDicts=getDicts(db)
 		
-		lexemes = {}
-		sectionsLexemes = {}
+			lexemes = {}
+			sectionsLexemes = {}
 
-		totalInstances = 0
-		totalLexemes = 0
-		totalWordsInSections = 0
-		if (enableBHS and db=='bhs'):
-			restrictStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in restrict]
-			excludeStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in exclude]
-		else:
-			restrictStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in restrict]
-			excludeStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in exclude]
-		#print("restrictStrings: " + str(restrictStrings))
-		restricted = True if len(restrictStrings) > 0 else False
-		excluded  = True if len(excludeStrings) > 0 else False
-		
-		def includeWord(wordid):
-			wordid=int(wordid)
-			include = False
-			nonlocal beta
-			nonlocal checkProper
-			nonlocal excludeStrings
-			nonlocal excluded
-			nonlocal gloss
-			nonlocal pos
-			nonlocal plain
-			nonlocal restrictStrings
-			nonlocal restricted
-			nonlocal totalCount
-			nonlocal totalInstances
-			nonlocal totalLexemes
-			nonlocal totalWordsInSections
-
-
-			if (api.F.otype.v(wordid) == 'word'):
-				#beta = F.lex.v(wordid)
-				totalWordsInSections += 1
-				#greek = F.lex_utf8.v(wordid)
-
-				if (checkProper and ((db == 'lxx' and api.F.sp.v(wordid) == 'noun') and api.F.lex_utf8.v(wordid)[0].isupper())
-					or db=='bhs' and api.F.sp.v(wordid) == 'nmpr'): 
-					# we have a name, and must account for that fact:
-					if ((not excluded or 26 not in exclude) 
-						and (not restricted or 26 in restrict)): #we should include it
-						include = True
-				else:# don't need to worry about names
-					thePos = api.F.sp.v(wordid)
-					if ( (not excluded or thePos not in excludeStrings)  
-						and (not restricted or thePos in restrictStrings)):
-						include = True
+			totalInstances = 0
+			totalLexemes = 0
+			totalWordsInSections = 0
+			if (enableBHS and db=='bhs'):
+				restrictStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in restrict]
+				excludeStrings=[v['abbrev'] for (k,v) in theDicts['dict'].items() if k in exclude]
+			else:
+				restrictStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in restrict]
+				excludeStrings=[v['desc'] for (k,v) in theDicts['dict'].items() if k in exclude]
+			#print("restrictStrings: " + str(restrictStrings))
+			restricted = True if len(restrictStrings) > 0 else False
+			excluded  = True if len(excludeStrings) > 0 else False
 			
-			return include
-			
-
-		def addLexes(nodeid,recursive=False):
-			def addLex(wordid):
+			def includeWord(wordid):
+				wordid=int(wordid)
+				include = False
+				nonlocal beta
+				nonlocal checkProper
+				nonlocal excludeStrings
+				nonlocal excluded
+				nonlocal gloss
+				nonlocal pos
+				nonlocal plain
+				nonlocal restrictStrings
+				nonlocal restricted
+				nonlocal totalCount
 				nonlocal totalInstances
 				nonlocal totalLexemes
 				nonlocal totalWordsInSections
-				nonlocal beta
-				nonlocal plain
-				nonlocal gloss
-				nonlocal totalCount
-				nonlocal pos
 
-				if(includeWord(wordid)):	
-					
-					totalInstances += 1
-					if (not api.lex(wordid) in lexemes.keys()):
-						totalLexemes +=1
-						lexemes[api.lex(wordid)] = {'count': 1, 'id': wordid}
-						# track which of the give sections this word is in:
-						if (common):
-							sectionsLexemes[api.lex(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
 
-						if (totalCount):
-							if (db=='lxx'):
-								lexemes[api.lex(wordid)]['total'] = int(api.F.freq_lemma.v(wordid));
-							elif(db=='bhs'):
-								lexemes[api.lex(wordid)]['total'] = int(api.F.freq_lex.v(wordid));
-						if (gloss):
-							lexemes[api.lex(wordid)]['gloss'] = api.F.gloss.v(wordid)
-						if (beta):
-							lexemes[api.lex(wordid)]['beta'] = api.F.lex.v(wordid)
-						if (pos):
-							lexemes[api.lex(wordid)]['pos'] = api.F.sp.v(wordid)
-							#print("Got pos!")
-							if ((db == 'lxx' and lexemes[api.lex(wordid)]['pos'] == 'noun' and api.lex(wordid)[0].isupper())
-								or (db == 'bhs' and lexemes[api.lex(wordid)]['pos']=='nmpr')):
-								if (checkProper and db=='lxx'):
-									lexemes[api.lex(wordid)]['pos'] = 'proper noun or name'
-								else:
-									lexemes[api.lex(wordid)]['proper'] = True
-						if (plain and db=='bhs'):
-							lexemes[api.lex(wordid)]['plain'] = api.F.lex_utf8.v(wordid)
-					else:
-						lexemes[api.lex(wordid)]['count'] += 1
-						if (common):
-							sectionsLexemes[api.lex(wordid)].update([int(s) for s in (set(api.L.u(wordid)) & set(sections))])
+				if (api.F.otype.v(wordid) == 'word'):
+					#beta = F.lex.v(wordid)
+					totalWordsInSections += 1
+					#greek = F.lex_utf8.v(wordid)
+
+					if (checkProper and ((db == 'lxx' and api.F.sp.v(wordid) == 'noun') and api.F.lex_utf8.v(wordid)[0].isupper())
+						or db=='bhs' and api.F.sp.v(wordid) == 'nmpr'): 
+						# we have a name, and must account for that fact:
+						if ((not excluded or 26 not in exclude) 
+							and (not restricted or 26 in restrict)): #we should include it
+							include = True
+					else:# don't need to worry about names
+						thePos = api.F.sp.v(wordid)
+						if ( (not excluded or thePos not in excludeStrings)  
+							and (not restricted or thePos in restrictStrings)):
+							include = True
+				
+				return include
+				
+
+			def addLexes(nodeid,recursive=False):
+				def addLex(wordid):
+					nonlocal totalInstances
+					nonlocal totalLexemes
+					nonlocal totalWordsInSections
+					nonlocal beta
+					nonlocal plain
+					nonlocal gloss
+					nonlocal totalCount
+					nonlocal pos
+
+					if(includeWord(wordid)):	
+						
+						totalInstances += 1
+						if (not api.lex(wordid) in lexemes.keys()):
+							totalLexemes +=1
+							lexemes[api.lex(wordid)] = {'count': 1, 'id': wordid}
+							# track which of the give sections this word is in:
+							if (common):
+								sectionsLexemes[api.lex(wordid)]=set([int(s) for s in (set(L.u(wordid)) & set(sections))])
+
+							if (totalCount):
+								if (db=='lxx'):
+									lexemes[api.lex(wordid)]['total'] = int(api.F.freq_lemma.v(wordid));
+								elif(db=='bhs'):
+									lexemes[api.lex(wordid)]['total'] = int(api.F.freq_lex.v(wordid));
+							if (gloss):
+								lexemes[api.lex(wordid)]['gloss'] = api.F.gloss.v(wordid)
+							if (beta):
+								lexemes[api.lex(wordid)]['beta'] = api.F.lex.v(wordid)
+							if (pos):
+								lexemes[api.lex(wordid)]['pos'] = api.F.sp.v(wordid)
+								#print("Got pos!")
+								if ((db == 'lxx' and lexemes[api.lex(wordid)]['pos'] == 'noun' and api.lex(wordid)[0].isupper())
+									or (db == 'bhs' and lexemes[api.lex(wordid)]['pos']=='nmpr')):
+									if (checkProper and db=='lxx'):
+										lexemes[api.lex(wordid)]['pos'] = 'proper noun or name'
+									else:
+										lexemes[api.lex(wordid)]['proper'] = True
+							if (plain and db=='bhs'):
+								lexemes[api.lex(wordid)]['plain'] = api.F.lex_utf8.v(wordid)
+						else:
+							lexemes[api.lex(wordid)]['count'] += 1
+							if (common):
+								sectionsLexemes[api.lex(wordid)].update([int(s) for s in (set(api.L.u(wordid)) & set(sections))])
+				
+				id=int(nodeid)
+				if (api.L.d(id) and not recursive):
+					for w in api.L.d(id):
+						addLexes(w,recursive=True)
+				elif(api.F.otype.v(id) == 'word'):
+					addLex(id)
+				
+			#print("sections: " + str(sections))
+			if(len(sections) > 0):
+				for s in sections:
+					s=int(s)
+					foundSuper = False
+					for supersect in api.L.u(s):
+						if ((str(supersect) in sections) or (supersect in sections)):
+							foundSuper = True
+					if(not foundSuper):
+						addLexes(s)
+			else:
+				for o in api.N.walk():
+					addLexes(o)
+			#print(lexemes)		
+			# sort lexemes?
+			# 
+			# 	
+			theResponseObj = {
+				'totalInstances': totalInstances,#i.e., number of words in this section
+				'totalLexemes': totalLexemes,
+				'totalWords':totalWordsInSections,
+				'lexemes': lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
+			}
 			
-			id=int(nodeid)
-			if (api.L.d(id) and not recursive):
-				for w in api.L.d(id):
-					addLexes(w,recursive=True)
-			elif(api.F.otype.v(id) == 'word'):
-				addLex(id)
-			
-		#print("sections: " + str(sections))
-		if(len(sections) > 0):
-			for s in sections:
-				s=int(s)
-				foundSuper = False
-				for supersect in api.L.u(s):
-					if ((str(supersect) in sections) or (supersect in sections)):
-						foundSuper = True
-				if(not foundSuper):
-					addLexes(s)
-		else:
-			for o in api.N.walk():
-				addLexes(o)
-		#print(lexemes)		
-		# sort lexemes?
-		# 
-		# 	
-		theResponseObj = {
-			'totalInstances': totalInstances,#i.e., number of words in this section
-			'totalLexemes': totalLexemes,
-			'totalWords':totalWordsInSections,
-			'lexemes': lexemes if min == 1 else {k:v for (k,v) in lexemes.items() if int(v['count']) >= int(min)}
-		}
-		
-		if (common):
-			commonLexes = [g for (g,ss) in sectionsLexemes.items() if set(sections) <= ss]
-			#print("commonlexes length: " + str(len(commonLexes)))
-		#	print("set repon.common to: "+str(len(theResponseObj['common'])))
-			theResponseObj['common']=commonLexes
+			if (common):
+				commonLexes = [g for (g,ss) in sectionsLexemes.items() if set(sections) <= ss]
+				#print("commonlexes length: " + str(len(commonLexes)))
+			#	print("set repon.common to: "+str(len(theResponseObj['common'])))
+				theResponseObj['common']=commonLexes
 		return  theResponseObj
 
 
@@ -750,11 +778,17 @@ def create_app():
 	def getChaptersDict(book, db='lxx'):
 		mylog("getChapters(" + str(book) + "," + db +")")
 		api = getAPI(db)
-		return dict([(api.F.chapter.v(c), c) for c in api.L.d(book) if api.F.otype.v(c)=='chapter'])
+		theDict=dict()
+		if(api):
+			theDict= dict([(api.F.chapter.v(c), c) for c in api.L.d(book) if api.F.otype.v(c)=='chapter'])
+		return theDict
 		
 	def getBooksDict(db='lxx'):
 		api=getAPI(db)
-		return dict([(b, api.F.book.v(b)) for b in api.N.walk() if api.F.otype.v(b) == 'book'])
+		theDict=dict()
+		if(api):
+			theDict= dict([(b, api.F.book.v(b)) for b in api.N.walk() if api.F.otype.v(b) == 'book'])
+		return theDict
 
 
 	def getApp():

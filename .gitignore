@@ -12,3 +12,6 @@
 !run.sh
 !test.sh
 tfData/__pycache__/
+*.pyc
+
+tfflask/tfData/__pycache__/
