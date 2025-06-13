@@ -1,5 +1,7 @@
 # tf-flask
 
+**NOTICE**: This is being ported from (Flask)[https://flask.palletsprojects.com] to (FastAPI)[https://fastapi.tiangolo.com/]. See (tf-fast)[https://github.com/cbop-dev/tf-fast]. All further development will be there.
+
 ## Description
 
 A python service handling some simple HTTP REST requests for Text-Fabric datasets.
